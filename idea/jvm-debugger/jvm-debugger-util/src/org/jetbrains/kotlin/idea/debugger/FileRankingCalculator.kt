@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.idea.debugger.FileRankingCalculator.Ranking.Companio
 import org.jetbrains.kotlin.idea.debugger.FileRankingCalculator.Ranking.Companion.MINOR
 import org.jetbrains.kotlin.idea.debugger.FileRankingCalculator.Ranking.Companion.NORMAL
 import org.jetbrains.kotlin.idea.debugger.FileRankingCalculator.Ranking.Companion.ZERO
+import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfTypes2
@@ -202,6 +203,10 @@ abstract class FileRankingCalculator(private val checkClassFqName: Boolean = tru
     }
 
     private fun fileRanking(file: KtFile, location: Location): Ranking {
+        if (location.lineNumber() in JvmAbi.SYNTHETIC_MARKER_LINE_NUMBERS) {
+            return ZERO
+        }
+
         val locationLineNumber = location.lineNumber() - 1
         val lineStartOffset = file.getLineStartOffset(locationLineNumber) ?: return LOW
         val elementAt = file.findElementAt(lineStartOffset) ?: return ZERO

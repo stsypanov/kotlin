@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.codegen.OriginCollectingClassBuilderFactory
 import org.jetbrains.kotlin.codegen.getClassFiles
 import org.jetbrains.kotlin.codegen.state.GenerationState
 import org.jetbrains.kotlin.idea.debugger.FileRankingCalculator
+import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.org.objectweb.asm.tree.ClassNode
@@ -84,7 +85,13 @@ abstract class AbstractFileRankingTest : LowLevelDebuggerTestBase() {
             val allFilesWithSameName = getKtFiles(expectedFile.name)
 
             for (location in locations) {
-                if (location.method().isBridge || location.method().isSynthetic) continue
+                if (location.method().isBridge || location.method().isSynthetic) {
+                    continue
+                }
+
+                if (location.lineNumber() in JvmAbi.SYNTHETIC_MARKER_LINE_NUMBERS) {
+                    continue
+                }
 
                 val fileWithRankings: Map<KtFile, Int> = calculator.rankFiles(allFilesWithSameName, location)
 
