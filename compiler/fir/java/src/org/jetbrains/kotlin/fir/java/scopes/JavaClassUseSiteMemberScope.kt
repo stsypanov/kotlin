@@ -19,7 +19,7 @@ import org.jetbrains.kotlin.fir.symbols.CallableId
 import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.name.Name
 
-class JavaClassUseSiteMemberScope(
+open class JavaClassUseSiteMemberScope(
     klass: FirRegularClass,
     session: FirSession,
     superTypesScope: FirSuperTypeScope,

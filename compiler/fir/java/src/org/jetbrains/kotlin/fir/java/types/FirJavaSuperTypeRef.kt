@@ -5,8 +5,8 @@
 
 package org.jetbrains.kotlin.fir.java.types
 
-import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.FirSourceElement
 import org.jetbrains.kotlin.fir.expressions.FirAnnotationCall
 import org.jetbrains.kotlin.fir.java.JavaTypeParameterStack
 import org.jetbrains.kotlin.fir.java.toNotNullConeKotlinType
@@ -23,7 +23,7 @@ class FirJavaSuperTypeRef internal constructor(
     private val session: FirSession,
     private val javaTypeParameterStack: JavaTypeParameterStack
 ) : FirResolvedTypeRef() {
-    override val psi: PsiElement?
+    override val source: FirSourceElement?
         get() = null
 
     override val type: ConeKotlinType = javaType.toNotNullConeKotlinType(session, javaTypeParameterStack, mapToKotlin = true)

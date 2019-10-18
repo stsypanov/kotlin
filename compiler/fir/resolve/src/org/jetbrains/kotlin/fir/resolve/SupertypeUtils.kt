@@ -116,6 +116,9 @@ private tailrec fun ConeClassLikeType.computePartialExpansion(useSiteSession: Fi
     }
 }
 
+fun FirTypeRef.toExpandedSuperConeTypeIfAny(useSiteSession: FirSession): ConeClassLikeType? =
+    coneTypeSafe<ConeClassLikeType>()?.computePartialExpansion(useSiteSession)
+
 private fun FirClassifierSymbol<*>.collectSuperTypes(
     list: MutableList<ConeClassLikeType>,
     visitedSymbols: MutableSet<FirClassifierSymbol<*>>,
@@ -127,9 +130,10 @@ private fun FirClassifierSymbol<*>.collectSuperTypes(
     when (this) {
         is FirClassSymbol -> {
             val superClassTypes =
-                superConeTypes.mapNotNull {
-                    it.computePartialExpansion(useSiteSession)
-                        .takeIf { type -> lookupInterfaces || type.isClassBasedType(useSiteSession) }
+                (fir as FirClass<*>).superTypeRefs.mapNotNull { superTypeRef ->
+                    superTypeRef.toExpandedSuperConeTypeIfAny(useSiteSession)?.takeIf { coneType ->
+                        lookupInterfaces || coneType.isClassBasedType(useSiteSession)
+                    }
                 }
             list += superClassTypes
             if (deep)
