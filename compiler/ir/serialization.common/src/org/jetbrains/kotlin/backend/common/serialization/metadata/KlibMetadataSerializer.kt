@@ -38,7 +38,7 @@ abstract class KlibMetadataSerializer(
     val metadataVersion: BinaryVersion,
     val moduleDescriptor: ModuleDescriptor,
     val descriptorTable: DescriptorTable,
-    val skipExpects: Boolean = false
+    val skipExpects: Boolean
 ) {
     val fileRegistry = KlibMetadataFileRegistry()
 
