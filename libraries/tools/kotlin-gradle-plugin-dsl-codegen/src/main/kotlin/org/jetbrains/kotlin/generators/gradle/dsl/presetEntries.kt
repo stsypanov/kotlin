@@ -22,7 +22,8 @@ internal const val MPP_PACKAGE = "org.jetbrains.kotlin.gradle.plugin.mpp"
 internal const val KOTLIN_NATIVE_TARGET_PRESET_CLASS_FQNAME = "$MPP_PACKAGE.KotlinNativeTargetPreset"
 internal const val KOTLIN_NATIVE_TARGET_CLASS_FQNAME = "$MPP_PACKAGE.KotlinNativeTarget"
 
-internal const val KOTLIN_NATIVE_TARGET_WITH_TESTS_PRESET_CLASS_FQNAME = "$MPP_PACKAGE.KotlinNativeTargetWithTestsPreset"
+internal const val KOTLIN_NATIVE_TARGET_WITH_HOST_TESTS_PRESET_CLASS_FQNAME = "$MPP_PACKAGE.KotlinNativeTargetWithHostTestsPreset"
+internal const val KOTLIN_NATIVE_TARGET_WITH_SIMULATOR_TESTS_PRESET_CLASS_FQNAME = "$MPP_PACKAGE.KotlinNativeTargetWithSimulatorTestsPreset"
 internal const val KOTLIN_NATIVE_TARGET_WITH_TESTS_CLASS_FQNAME = "$MPP_PACKAGE.KotlinNativeTargetWithTests"
 
 internal val jvmPresetEntry = KotlinPresetEntry(
@@ -44,26 +45,27 @@ internal val androidPresetEntry = KotlinPresetEntry(
 )
 
 // Note: modifying these sets should also be reflected in the MPP plugin code, see 'setupDefaultPresets'
-private val testableNativeTargets = setOf(KonanTarget.LINUX_X64, KonanTarget.MACOS_X64, KonanTarget.MINGW_X64)
+private val nativeTargetsWithHostTests = setOf(KonanTarget.LINUX_X64, KonanTarget.MACOS_X64, KonanTarget.MINGW_X64)
+private val nativeTargetsWithSimulatorTests = setOf(KonanTarget.IOS_X64, KonanTarget.WATCHOS_X86, KonanTarget.TVOS_X64)
 private val disabledNativeTargets = setOf(KonanTarget.WATCHOS_X64)
 
 internal val nativePresetEntries = HostManager().targets
     .filter { (_, target) -> target !in disabledNativeTargets }
     .map { (_, target) ->
+
+        val (presetClassName, targetClassName) = when (target) {
+            in nativeTargetsWithHostTests ->
+                KOTLIN_NATIVE_TARGET_WITH_HOST_TESTS_PRESET_CLASS_FQNAME to KOTLIN_NATIVE_TARGET_WITH_TESTS_CLASS_FQNAME
+            in nativeTargetsWithSimulatorTests ->
+                KOTLIN_NATIVE_TARGET_WITH_SIMULATOR_TESTS_PRESET_CLASS_FQNAME to KOTLIN_NATIVE_TARGET_WITH_TESTS_CLASS_FQNAME
+            else ->
+                KOTLIN_NATIVE_TARGET_PRESET_CLASS_FQNAME to KOTLIN_NATIVE_TARGET_CLASS_FQNAME
+        }
+
         KotlinPresetEntry(
             target.presetName,
-            typeName(
-                if (target in testableNativeTargets)
-                    KOTLIN_NATIVE_TARGET_WITH_TESTS_PRESET_CLASS_FQNAME
-                else
-                    KOTLIN_NATIVE_TARGET_PRESET_CLASS_FQNAME
-            ),
-            typeName(
-                if (target in testableNativeTargets)
-                    KOTLIN_NATIVE_TARGET_WITH_TESTS_CLASS_FQNAME
-                else
-                    KOTLIN_NATIVE_TARGET_CLASS_FQNAME
-            )
+            typeName(presetClassName),
+            typeName(targetClassName)
         )
     }
 

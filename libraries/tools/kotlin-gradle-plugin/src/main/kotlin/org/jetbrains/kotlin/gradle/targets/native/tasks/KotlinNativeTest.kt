@@ -19,11 +19,10 @@ import org.jetbrains.kotlin.gradle.internal.testing.TCServiceMessagesTestExecuti
 import org.jetbrains.kotlin.gradle.targets.native.internal.parseKotlinNativeStackTraceAsJvm
 import org.jetbrains.kotlin.gradle.tasks.KotlinTest
 import org.jetbrains.kotlin.konan.KonanVersion
-import org.jetbrains.kotlin.konan.MetaVersion
 import java.io.File
 import java.util.concurrent.Callable
 
-open class KotlinNativeTest : KotlinTest() {
+abstract class KotlinNativeTest : KotlinTest() {
     @Suppress("LeakingThis")
     private val processOptions: ProcessForkOptions = DefaultProcessForkOptions(fileResolver)
 
@@ -98,6 +97,12 @@ open class KotlinNativeTest : KotlinTest() {
         processOptions.environment(name, value)
     }
 
+    // TODO: Naming? Move into a separate class?
+    @get:Internal
+    protected abstract val pathToRun: String
+
+    protected abstract fun transformCliArgs(testArgs: TestCliArgs): List<String>
+
     // KonanVersion doesn't provide an API to compare versions,
     // so we have to transform it to KotlinVersion first.
     // Note: this check doesn't take into account the meta version (release, eap, dev).
@@ -107,7 +112,7 @@ open class KotlinNativeTest : KotlinTest() {
     override fun createTestExecutionSpec(): TCServiceMessagesTestExecutionSpec {
         val extendedForkOptions = DefaultProcessForkOptions(fileResolver)
         processOptions.copyTo(extendedForkOptions)
-        extendedForkOptions.executable = executable.absolutePath
+        extendedForkOptions.executable = pathToRun
 
         val clientSettings = TCServiceMessagesClientSettings(
             name,
@@ -123,17 +128,17 @@ open class KotlinNativeTest : KotlinTest() {
         // Thus we check the exit code only for newer versions.
         val checkExitCode = project.konanVersion.isAtLeast(1, 3, 0)
 
-        val cliArgs = CliArgs("TEAMCITY", checkExitCode, includePatterns, excludePatterns, args)
+        val cliArgs = TestCliArgs("TEAMCITY", checkExitCode, includePatterns, excludePatterns, args)
 
         return TCServiceMessagesTestExecutionSpec(
             extendedForkOptions,
-            cliArgs.toList(),
+            transformCliArgs(cliArgs),
             checkExitCode,
             clientSettings
         )
     }
 
-    private class CliArgs(
+    protected class TestCliArgs(
         val testLogger: String? = null,
         val checkExitCode: Boolean = true,
         val testGradleFilter: Set<String> = setOf(),
@@ -162,4 +167,24 @@ open class KotlinNativeTest : KotlinTest() {
             it.addAll(userArgs)
         }
     }
+}
+
+open class KotlinNativeHostTest : KotlinNativeTest() {
+    @get:Internal
+    override val pathToRun: String
+        get() = executable.absolutePath
+
+    override fun transformCliArgs(testArgs: TestCliArgs): List<String> = testArgs.toList()
+}
+
+open class KotlinNativeSimulatorTest : KotlinNativeTest() {
+    @Input
+    lateinit var simulatorId: String
+
+    @get:Internal
+    override val pathToRun: String
+        get() = "/usr/bin/xcrun"
+
+    override fun transformCliArgs(testArgs: TestCliArgs): List<String> =
+        listOf("simctl", "spawn", "--standalone", simulatorId, executable.absolutePath, "--") + testArgs.toList()
 }

@@ -1283,7 +1283,7 @@ class NewMultiplatformIT : BaseGradleIT() {
 
     @Test
     fun testNativeTests() = with(Project("new-mpp-native-tests", gradleVersion)) {
-        val testTasks = listOf("macos64Test", "linux64Test", "mingw64Test")
+        val testTasks = listOf("macos64Test", "linux64Test", "mingw64Test", "iosTest", "watchosTest", "tvosTest")
         val hostTestTask = "${nativeHostTargetName}Test"
 
         val suffix = if (isWindows) "exe" else "kexe"
@@ -1309,6 +1309,10 @@ class NewMultiplatformIT : BaseGradleIT() {
         build("check") {
             assertSuccessful()
             assertTasksExecuted(":$hostTestTask")
+            if (HostManager.hostIsMac) {
+                assertTasksExecuted(":iosTest", ":watchosTest", ":tvosTest")
+            }
+
             assertFileExists(defaultOutputFile)
             assertTestResults("testProject/new-mpp-native-tests/TEST-TestKt.xml", hostTestTask)
         }

@@ -21,13 +21,19 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation.Companion.MAIN_COMPILATION_NAME
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation.Companion.TEST_COMPILATION_NAME
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
-import org.jetbrains.kotlin.gradle.targets.native.DefaultKotlinNativeTestRun
+import org.jetbrains.kotlin.gradle.targets.native.AbstractKotlinNativeTestRun
+import org.jetbrains.kotlin.gradle.targets.native.DefaultKotlinNativeHostTestRun
+import org.jetbrains.kotlin.gradle.targets.native.DefaultKotlinNativeSimulatorTestRun
 import org.jetbrains.kotlin.gradle.targets.native.KotlinNativeBinaryTestRun
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeHostTest
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.tasks.*
 import org.jetbrains.kotlin.gradle.testing.internal.configureConventions
 import org.jetbrains.kotlin.gradle.testing.internal.kotlinTestRegistry
 import org.jetbrains.kotlin.gradle.testing.testTaskName
+import org.jetbrains.kotlin.konan.target.HostManager
+import org.jetbrains.kotlin.konan.target.KonanTarget
 import java.io.File
 import java.util.*
 
@@ -278,6 +284,7 @@ open class KotlinNativeTargetConfigurator<T : KotlinNativeTarget>(
             }
         }
 
+        // TODO: Fix this comment.
         /**
          * We create test binaries for all platforms but test runs only for host platforms, see [KotlinNativeTargetWithTestsConfigurator]
          */
@@ -381,40 +388,71 @@ open class KotlinNativeTargetConfigurator<T : KotlinNativeTarget>(
                 usesPlatformOf(target)
                 isVisible = false
                 isCanBeConsumed = false
-                attributes.attribute(USAGE_ATTRIBUTE,  KotlinUsages.consumerApiUsage(target))
+                attributes.attribute(USAGE_ATTRIBUTE, KotlinUsages.consumerApiUsage(target))
                 description = "Dependencies for cinterop '${cinterop.name}' (compilation '${compilation.name}')."
             }
         }
     }
 }
 
-class KotlinNativeTargetWithTestsConfigurator(kotlinPluginVersion: String) :
-    KotlinNativeTargetConfigurator<KotlinNativeTargetWithTests>(kotlinPluginVersion),
-    KotlinTargetWithTestsConfigurator<KotlinNativeBinaryTestRun, KotlinNativeTargetWithTests> {
+abstract class KotlinNativeTargetWithTestsConfigurator<TASK : KotlinNativeTest, TEST_RUN : AbstractKotlinNativeTestRun<TASK>>(
+    kotlinPluginVersion: String
+) : KotlinNativeTargetConfigurator<KotlinNativeTargetWithTests>(kotlinPluginVersion),
+    KotlinTargetWithTestsConfigurator<KotlinNativeBinaryTestRun, KotlinNativeTargetWithTests>
+{
+    protected abstract fun isTestTaskEnabled(target: KotlinNativeTargetWithTests): Boolean
 
     override val testRunClass: Class<KotlinNativeBinaryTestRun>
         get() = KotlinNativeBinaryTestRun::class.java
 
+    protected fun configureTestRun(testRun: TEST_RUN, target: KotlinNativeTargetWithTests): Unit = with(testRun) {
+        val project = target.project
+
+        val testTaskOrProvider = project.registerTask(testTaskName, testTaskClass) { testTask ->
+            testTask.group = LifecycleBasePlugin.VERIFICATION_GROUP
+            testTask.description = "Executes Kotlin/Native unit tests for target ${target.name}."
+            testTask.targetName = target.name
+
+            testTask.enabled = isTestTaskEnabled(target)
+
+            testTask.workingDir = project.projectDir.absolutePath
+
+            testTask.configureConventions()
+        }
+
+        executionTask = testTaskOrProvider
+
+        setExecutionSourceFrom(target.binaries.getTest(NativeBuildType.DEBUG))
+
+        project.kotlinTestRegistry.registerTestTask(testTaskOrProvider)
+    }
+}
+
+class KotlinNativeTargetWithHostTestsConfigurator(kotlinPluginVersion: String) :
+    KotlinNativeTargetWithTestsConfigurator<KotlinNativeHostTest, DefaultKotlinNativeHostTestRun>(kotlinPluginVersion) {
+
+    override fun isTestTaskEnabled(target: KotlinNativeTargetWithTests): Boolean = target.konanTarget.isCurrentHost
+
     override fun createTestRun(name: String, target: KotlinNativeTargetWithTests): KotlinNativeBinaryTestRun =
-        DefaultKotlinNativeTestRun(name, target).apply {
-            val project = target.project
+        DefaultKotlinNativeHostTestRun(name, target).also {
+            configureTestRun(it, target)
+        }
+}
 
-            val testTaskOrProvider = project.registerTask<KotlinNativeTest>(testTaskName) { testTask ->
-                testTask.group = LifecycleBasePlugin.VERIFICATION_GROUP
-                testTask.description = "Executes Kotlin/Native unit tests for target ${target.name}."
-                testTask.targetName = target.name
+class KotlinNativeTargetWithSimulatorTestsConfigurator(kotlinPluginVersion: String) :
+    KotlinNativeTargetWithTestsConfigurator<KotlinNativeSimulatorTest, DefaultKotlinNativeSimulatorTestRun>(kotlinPluginVersion) {
 
-                testTask.enabled = target.konanTarget.isCurrentHost
+    override fun isTestTaskEnabled(target: KotlinNativeTargetWithTests): Boolean = HostManager.hostIsMac
 
-                testTask.workingDir = project.projectDir.absolutePath
+    override fun createTestRun(name: String, target: KotlinNativeTargetWithTests): KotlinNativeBinaryTestRun =
+        DefaultKotlinNativeSimulatorTestRun(name, target).also {
+            configureTestRun(it, target)
 
-                testTask.configureConventions()
+            it.simulatorId = when (target.konanTarget) {
+                KonanTarget.IOS_X64 -> "iPhone 8"
+                KonanTarget.WATCHOS_X86 -> "Apple Watch Series 5 - 44mm"
+                KonanTarget.TVOS_X64 -> "Apple TV"
+                else -> error("Simulator tests are not supported for platform ${target.konanTarget.name}")
             }
-
-            executionTask = testTaskOrProvider
-
-            setExecutionSourceFrom(target.binaries.getTest(NativeBuildType.DEBUG))
-
-            project.kotlinTestRegistry.registerTestTask(testTaskOrProvider)
         }
 }
