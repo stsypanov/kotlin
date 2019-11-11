@@ -147,8 +147,8 @@ abstract class KlibMetadataSerializer(
                                  //builder: ProtoBuf.PackageFragment.Builder,
                                  descriptors: Collection<DeclarationDescriptor>): List<Pair<ProtoBuf.Class, Int>> {
 
-        return descriptors.filterIsInstance<ClassDescriptor>()/*.filterOutExpectsWithActuals()*/.flatMap {
-            serializeClass(packageName, /*builder, */it)
+        return descriptors.filterIsInstance<ClassDescriptor>().flatMap {
+            serializeClass(packageName, it)
         }
     }
 
