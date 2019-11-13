@@ -8,7 +8,7 @@ package kotlin.script.experimental.test
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import kotlin.contracts.ExperimentalContracts
-import kotlin.script.experimental.MavenDependenciesResolver
+import kotlin.script.experimental.dependencies.maven.MavenDependenciesResolver
 import kotlin.script.experimental.api.ResultWithDiagnostics
 import kotlin.script.experimental.api.valueOrThrow
 

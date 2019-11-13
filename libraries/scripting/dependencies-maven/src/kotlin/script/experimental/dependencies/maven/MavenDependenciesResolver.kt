@@ -3,7 +3,7 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package kotlin.script.experimental
+package kotlin.script.experimental.dependencies.maven
 
 import com.jcabi.aether.Aether
 import org.sonatype.aether.repository.Authentication
@@ -14,6 +14,10 @@ import org.sonatype.aether.util.artifact.JavaScopes
 import java.io.File
 import java.util.*
 import kotlin.script.experimental.api.ResultWithDiagnostics
+import kotlin.script.experimental.dependencies.ExternalDependenciesResolver
+import kotlin.script.experimental.dependencies.RepositoryCoordinates
+import kotlin.script.experimental.dependencies.impl.makeResolveFailureResult
+import kotlin.script.experimental.dependencies.impl.toRepositoryUrlOrNull
 
 val mavenCentral = RemoteRepository("maven-central", "default", "https://repo.maven.apache.org/maven2/")
 
@@ -25,10 +29,10 @@ class MavenRepositoryCoordinates(
     val passPhrase: String?
 ) : RepositoryCoordinates(url)
 
-class MavenDependenciesResolver : GenericDependenciesResolver() {
+class MavenDependenciesResolver : ExternalDependenciesResolver {
 
     override fun acceptsArtifact(artifactCoordinates: String): Boolean =
-        artifactCoordinates.mavenArtifact != null
+        artifactCoordinates.toMavenArtifact() != null
 
     override fun acceptsRepository(repositoryCoordinates: RepositoryCoordinates): Boolean {
         return repositoryCoordinates.toRepositoryUrlOrNull() != null
@@ -43,20 +47,13 @@ class MavenDependenciesResolver : GenericDependenciesResolver() {
 
     private fun allRepositories() = remoteRepositories().map { it.url!!.toString() } + localRepo.toString()
 
-    private fun String?.isValidParam() = this?.isNotBlank() ?: false
+    private fun String.toMavenArtifact(): DefaultArtifact? =
+        if (this.isNotBlank() && this.count { it == ':' } == 2) DefaultArtifact(this)
+        else null
 
-    private val String.mavenArtifact: DefaultArtifact?
-        get() {
-            return if (this.isValidParam() && this.count { it == ':' } == 2) {
-                DefaultArtifact(this)
-            } else {
-                null
-            }
-        }
+    override suspend fun resolve(artifactCoordinates: String): ResultWithDiagnostics<List<File>> {
 
-    override suspend fun resolve(artifactCoordinates: String): ResultWithDiagnostics<Iterable<File>> {
-
-        val artifactId = artifactCoordinates.mavenArtifact!!
+        val artifactId = artifactCoordinates.toMavenArtifact()!!
 
         try {
             val deps = Aether(remoteRepositories(), localRepo).resolve(artifactId, JavaScopes.RUNTIME)
@@ -73,7 +70,8 @@ class MavenDependenciesResolver : GenericDependenciesResolver() {
         else str
 
     override fun addRepository(repositoryCoordinates: RepositoryCoordinates) {
-        val url = repositoryCoordinates.toRepositoryUrlOrNull() ?: throw Exception("Invalid Maven repository URL: ${repositoryCoordinates}")
+        val url = repositoryCoordinates.toRepositoryUrlOrNull()
+            ?: throw IllegalArgumentException("Invalid Maven repository URL: ${repositoryCoordinates}")
         val repo = RemoteRepository(
             repositoryCoordinates.string,
             "default",

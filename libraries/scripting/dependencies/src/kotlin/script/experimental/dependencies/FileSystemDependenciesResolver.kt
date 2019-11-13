@@ -3,12 +3,14 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package kotlin.script.experimental
+package kotlin.script.experimental.dependencies
 
 import java.io.File
 import kotlin.script.experimental.api.ResultWithDiagnostics
+import kotlin.script.experimental.dependencies.impl.makeResolveFailureResult
+import kotlin.script.experimental.dependencies.impl.toRepositoryUrlOrNull
 
-class FileSystemDependenciesResolver(vararg paths: File) : GenericDependenciesResolver() {
+class FileSystemDependenciesResolver(vararg paths: File) : ExternalDependenciesResolver {
 
     private fun String.toRepositoryFileOrNull(): File? =
         File(this).takeIf { it.exists() && it.isDirectory }
@@ -17,19 +19,19 @@ class FileSystemDependenciesResolver(vararg paths: File) : GenericDependenciesRe
         (this.toRepositoryUrlOrNull()?.takeIf { it.protocol == "file" }?.path ?: string).toRepositoryFileOrNull()
 
     override fun addRepository(repositoryCoordinates: RepositoryCoordinates) {
-        val repoDir = repositoryCoordinates.toFilePath() ?: throw Exception("Invalid repository location: '${repositoryCoordinates}'")
+        val repoDir = repositoryCoordinates.toFilePath()
+            ?: throw IllegalArgumentException("Invalid repository location: '${repositoryCoordinates}'")
         localRepos.add(repoDir)
     }
 
-    override suspend fun resolve(artifactCoordinates: String): ResultWithDiagnostics<Iterable<File>> {
-        if (!acceptsArtifact(artifactCoordinates)) throw Exception("Path is invalid")
+    override suspend fun resolve(artifactCoordinates: String): ResultWithDiagnostics<List<File>> {
+        if (!acceptsArtifact(artifactCoordinates)) throw IllegalArgumentException("Path is invalid")
 
         val messages = mutableListOf<String>()
 
-        val path = artifactCoordinates
         for (repo in localRepos) {
             // TODO: add coordinates and wildcard matching
-            val file = if (repo == null) File(path) else File(repo, path)
+            val file = if (repo == null) File(artifactCoordinates) else File(repo, artifactCoordinates)
             when {
                 !file.exists() -> messages.add("File '${file.canonicalPath}' does not exists")
                 !file.isFile && !file.isDirectory -> messages.add("Path '${file.canonicalPath}' is neither file nor directory")
@@ -40,7 +42,7 @@ class FileSystemDependenciesResolver(vararg paths: File) : GenericDependenciesRe
     }
 
     override fun acceptsArtifact(artifactCoordinates: String) =
-        !artifactCoordinates.isBlank() && artifactCoordinates.count { it == ':' } < 2
+        !artifactCoordinates.isBlank() // TODO: make check stronger, e.g. using NIO's Path
 
     override fun acceptsRepository(repositoryCoordinates: RepositoryCoordinates): Boolean = repositoryCoordinates.toFilePath() != null
 

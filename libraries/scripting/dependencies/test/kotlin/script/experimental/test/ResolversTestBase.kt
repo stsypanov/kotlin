@@ -11,8 +11,8 @@ import org.junit.Assert
 import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
-import kotlin.script.experimental.GenericDependenciesResolver
-import kotlin.script.experimental.acceptsRepository
+import kotlin.script.experimental.dependencies.ExternalDependenciesResolver
+import kotlin.script.experimental.dependencies.acceptsRepository
 import kotlin.script.experimental.api.ResultWithDiagnostics
 import kotlin.script.experimental.api.valueOrThrow
 
@@ -36,19 +36,19 @@ fun <T> assertIsSuccess(r: ResultWithDiagnostics<T>) {
 
 @ExperimentalContracts
 abstract class ResolversTestBase : TestCase() {
-    fun GenericDependenciesResolver.assertNotResolve(expectedReportsCount: Int, path: String) {
+    fun ExternalDependenciesResolver.assertNotResolve(expectedReportsCount: Int, path: String) {
         val result = runBlocking { resolve(path) }
         assertIsFailure(result)
         assertEquals(expectedReportsCount, result.reports.count())
     }
 
-    fun GenericDependenciesResolver.assertAcceptsArtifact(path: String) = assertTrue(acceptsArtifact(path))
+    fun ExternalDependenciesResolver.assertAcceptsArtifact(path: String) = assertTrue(acceptsArtifact(path))
 
-    fun GenericDependenciesResolver.assertNotAcceptsArtifact(path: String) = assertFalse(acceptsArtifact(path))
+    fun ExternalDependenciesResolver.assertNotAcceptsArtifact(path: String) = assertFalse(acceptsArtifact(path))
 
-    fun GenericDependenciesResolver.assertAcceptsRepository(path: String) = assertTrue(acceptsRepository(path))
+    fun ExternalDependenciesResolver.assertAcceptsRepository(path: String) = assertTrue(acceptsRepository(path))
 
-    fun GenericDependenciesResolver.assertResolve(expected: File, path: String) {
+    fun ExternalDependenciesResolver.assertResolve(expected: File, path: String) {
 
         assertTrue(acceptsArtifact(path))
 

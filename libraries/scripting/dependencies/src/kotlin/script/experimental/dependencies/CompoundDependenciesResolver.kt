@@ -3,15 +3,16 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
  */
 
-package kotlin.script.experimental
+package kotlin.script.experimental.dependencies
 
 import java.io.File
 import kotlin.script.experimental.api.ResultWithDiagnostics
 import kotlin.script.experimental.api.ScriptDiagnostic
+import kotlin.script.experimental.dependencies.impl.makeResolveFailureResult
 
-class CompoundDependenciesResolver(private val resolvers: List<GenericDependenciesResolver>) : GenericDependenciesResolver() {
+class CompoundDependenciesResolver(private val resolvers: List<ExternalDependenciesResolver>) : ExternalDependenciesResolver {
 
-    constructor(vararg resolvers: GenericDependenciesResolver) : this(resolvers.toList())
+    constructor(vararg resolvers: ExternalDependenciesResolver) : this(resolvers.toList())
 
     override fun acceptsArtifact(artifactCoordinates: String): Boolean {
         return resolvers.any { it.acceptsArtifact(artifactCoordinates) }
@@ -23,10 +24,10 @@ class CompoundDependenciesResolver(private val resolvers: List<GenericDependenci
 
     override fun addRepository(repositoryCoordinates: RepositoryCoordinates) {
         if (resolvers.count { it.tryAddRepository(repositoryCoordinates) } == 0)
-            throw Exception("Failed to detect repository type: ${repositoryCoordinates}")
+            throw Exception("Failed to detect repository type: $repositoryCoordinates")
     }
 
-    override suspend fun resolve(artifactCoordinates: String): ResultWithDiagnostics<Iterable<File>> {
+    override suspend fun resolve(artifactCoordinates: String): ResultWithDiagnostics<List<File>> {
 
         val reports = mutableListOf<ScriptDiagnostic>()
 
@@ -38,8 +39,11 @@ class CompoundDependenciesResolver(private val resolvers: List<GenericDependenci
                 }
             }
         }
-        if (reports.count() == 0) return makeResolveFailureResult("No suitable dependency resolver found for artifact '$artifactCoordinates'")
-        return ResultWithDiagnostics.Failure(reports)
+        return if (reports.count() == 0) {
+            makeResolveFailureResult("No suitable dependency resolver found for artifact '$artifactCoordinates'")
+        } else {
+            ResultWithDiagnostics.Failure(reports)
+        }
     }
 
 }
