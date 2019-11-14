@@ -99,7 +99,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
      * @return this string builder.
      */
     @SinceKotlin("1.3")
-    @ExperimentalStdlibApi
+//    @ExperimentalStdlibApi
     actual fun append(boolean: Boolean): StringBuilder {
         string += boolean
         return this
@@ -125,7 +125,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
      * @return this string builder.
      */
     @SinceKotlin("1.3")
-    @ExperimentalStdlibApi
+//    @ExperimentalStdlibApi
     actual fun append(string: String): StringBuilder {
         this.string += string
         return this

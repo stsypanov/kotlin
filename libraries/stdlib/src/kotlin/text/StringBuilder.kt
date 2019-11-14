@@ -25,7 +25,7 @@ expect class StringBuilder : Appendable, CharSequence {
 
     /** Constructs a string builder that contains the same characters as the specified [content] string. */
     @SinceKotlin("1.3")
-    @ExperimentalStdlibApi
+//    @ExperimentalStdlibApi
     constructor(content: String)
 
     override val length: Int
@@ -70,7 +70,7 @@ expect class StringBuilder : Appendable, CharSequence {
      * @return this string builder.
      */
     @SinceKotlin("1.3")
-    @ExperimentalStdlibApi
+//    @ExperimentalStdlibApi
     fun append(boolean: Boolean): StringBuilder
 
     /**
@@ -90,7 +90,7 @@ expect class StringBuilder : Appendable, CharSequence {
      * @return this string builder.
      */
     @SinceKotlin("1.3")
-    @ExperimentalStdlibApi
+//    @ExperimentalStdlibApi
     fun append(string: String): StringBuilder
 
     /**

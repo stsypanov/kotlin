@@ -15,7 +15,6 @@ fun Element.hasClass(cssClass: String): Boolean = className.matches("""(^|.*\s+)
  *
  * @return true if at least one class has been added
  */
-@UseExperimental(ExperimentalStdlibApi::class)
 fun Element.addClass(vararg cssClasses: String): Boolean {
     val missingClasses = cssClasses.filterNot { hasClass(it) }
     if (missingClasses.isNotEmpty()) {
