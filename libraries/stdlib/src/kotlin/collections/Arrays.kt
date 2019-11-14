@@ -120,7 +120,7 @@ internal fun <T> Array<out T>.contentDeepToStringImpl(): String {
     }
 }
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
+@UseExperimental(ExperimentalUnsignedTypes::class, ExperimentalStdlibApi::class)
 private fun <T> Array<out T>.contentDeepToStringInternal(result: StringBuilder, processed: MutableList<Array<*>>) {
     if (this in processed) {
         result.append("[...]")
