@@ -20,10 +20,12 @@ import com.intellij.psi.PsiElement;
 import kotlin.collections.CollectionsKt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns;
+import org.jetbrains.kotlin.config.LanguageFeature;
 import org.jetbrains.kotlin.descriptors.ClassDescriptor;
 import org.jetbrains.kotlin.descriptors.ClassifierDescriptor;
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor;
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor;
+import org.jetbrains.kotlin.diagnostics.DiagnosticFactory1;
 import org.jetbrains.kotlin.diagnostics.Errors;
 import org.jetbrains.kotlin.psi.KtTypeProjection;
 import org.jetbrains.kotlin.resolve.calls.model.ResolvedCall;
@@ -46,20 +48,46 @@ public class ReifiedTypeParameterSubstitutionChecker implements CallChecker {
             }
 
             KtTypeProjection typeProjection = CollectionsKt.getOrNull(resolvedCall.getCall().getTypeArguments(), parameter.getIndex());
-            PsiElement reportErrorOn = typeProjection != null ? typeProjection : reportOn;
 
-            if (argumentDeclarationDescriptor instanceof TypeParameterDescriptor &&
-                !((TypeParameterDescriptor) argumentDeclarationDescriptor).isReified()) {
-                context.getTrace().report(Errors.TYPE_PARAMETER_AS_REIFIED.on(reportErrorOn, (TypeParameterDescriptor) argumentDeclarationDescriptor));
-            }
-            else if (TypeUtilsKt.cannotBeReified(argument)) {
-                context.getTrace().report(Errors.REIFIED_TYPE_FORBIDDEN_SUBSTITUTION.on(reportErrorOn, argument));
-            }
-            // REIFIED_TYPE_UNSAFE_SUBSTITUTION is temporary disabled because it seems too strict now (see KT-10847)
-            //else if (TypeUtilsKt.unsafeAsReifiedArgument(argument) && !hasPureReifiableAnnotation(parameter)) {
-            //    context.getTrace().report(Errors.REIFIED_TYPE_UNSAFE_SUBSTITUTION.on(reportErrorOn, argument));
-            //}
+            checkTypeArgument(typeProjection != null ? typeProjection : reportOn, context, argument, argumentDeclarationDescriptor, false);
         }
+    }
+
+    private void checkTypeArgument(
+            @NotNull PsiElement reportErrorOn,
+            @NotNull CallCheckerContext context,
+            KotlinType argument,
+            ClassifierDescriptor argumentDeclarationDescriptor,
+            boolean isArrayArgumentCheck
+    ) {
+        if (argumentDeclarationDescriptor instanceof TypeParameterDescriptor &&
+            !((TypeParameterDescriptor) argumentDeclarationDescriptor).isReified()) {
+            if (isArrayArgumentCheck) {
+                if (context.getLanguageVersionSettings().supportsFeature(LanguageFeature.ProhibitNonReifiedArraysAsReifiedTypeArguments)) {
+                    context.getTrace().report(Errors.TYPE_PARAMETER_AS_REIFIED_ARRAY
+                                                      .on(reportErrorOn, (TypeParameterDescriptor) argumentDeclarationDescriptor));
+                } else {
+                    context.getTrace().report(Errors.TYPE_PARAMETER_AS_REIFIED_ARRAY_WARNING
+                                                      .on(reportErrorOn, (TypeParameterDescriptor) argumentDeclarationDescriptor));
+                }
+            } else {
+                context.getTrace().report(Errors.TYPE_PARAMETER_AS_REIFIED
+                                                  .on(reportErrorOn, (TypeParameterDescriptor) argumentDeclarationDescriptor));
+            }
+        }
+        else if (TypeUtilsKt.cannotBeReified(argument)) {
+            context.getTrace().report(Errors.REIFIED_TYPE_FORBIDDEN_SUBSTITUTION.on(reportErrorOn, argument));
+        }
+        else if (argumentDeclarationDescriptor instanceof ClassDescriptor &&
+                 KotlinBuiltIns.isNonPrimitiveArray((ClassDescriptor) argumentDeclarationDescriptor)) {
+            KotlinType arrayTypeArgument = argument.getArguments().get(0).getType();
+            ClassifierDescriptor arrayTypeArgumentDescriptor = arrayTypeArgument.getConstructor().getDeclarationDescriptor();
+            checkTypeArgument(reportErrorOn, context, arrayTypeArgument, arrayTypeArgumentDescriptor, true);
+        }
+        // REIFIED_TYPE_UNSAFE_SUBSTITUTION is temporary disabled because it seems too strict now (see KT-10847)
+        //else if (TypeUtilsKt.unsafeAsReifiedArgument(argument) && !hasPureReifiableAnnotation(parameter)) {
+        //    context.getTrace().report(Errors.REIFIED_TYPE_UNSAFE_SUBSTITUTION.on(reportErrorOn, argument));
+        //}
     }
 
     /*
