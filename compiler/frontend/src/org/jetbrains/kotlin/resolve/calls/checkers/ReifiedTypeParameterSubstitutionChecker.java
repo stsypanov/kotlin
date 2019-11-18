@@ -60,20 +60,22 @@ public class ReifiedTypeParameterSubstitutionChecker implements CallChecker {
             ClassifierDescriptor argumentDeclarationDescriptor,
             boolean isArrayArgumentCheck
     ) {
-        if (argumentDeclarationDescriptor instanceof TypeParameterDescriptor &&
-            !((TypeParameterDescriptor) argumentDeclarationDescriptor).isReified()) {
+        if (argumentDeclarationDescriptor instanceof TypeParameterDescriptor) {
+            TypeParameterDescriptor typeParameter = (TypeParameterDescriptor) argumentDeclarationDescriptor;
+            if (typeParameter.isReified()) return;
+
+            DiagnosticFactory1<PsiElement, TypeParameterDescriptor> diagnosticFactory;
+
             if (isArrayArgumentCheck) {
                 if (context.getLanguageVersionSettings().supportsFeature(LanguageFeature.ProhibitNonReifiedArraysAsReifiedTypeArguments)) {
-                    context.getTrace().report(Errors.TYPE_PARAMETER_AS_REIFIED_ARRAY
-                                                      .on(reportErrorOn, (TypeParameterDescriptor) argumentDeclarationDescriptor));
+                    diagnosticFactory = Errors.TYPE_PARAMETER_AS_REIFIED_ARRAY;
                 } else {
-                    context.getTrace().report(Errors.TYPE_PARAMETER_AS_REIFIED_ARRAY_WARNING
-                                                      .on(reportErrorOn, (TypeParameterDescriptor) argumentDeclarationDescriptor));
+                    diagnosticFactory = Errors.TYPE_PARAMETER_AS_REIFIED_ARRAY_WARNING;
                 }
             } else {
-                context.getTrace().report(Errors.TYPE_PARAMETER_AS_REIFIED
-                                                  .on(reportErrorOn, (TypeParameterDescriptor) argumentDeclarationDescriptor));
+                diagnosticFactory = Errors.TYPE_PARAMETER_AS_REIFIED;
             }
+            context.getTrace().report(diagnosticFactory.on(reportErrorOn, typeParameter));
         }
         else if (TypeUtilsKt.cannotBeReified(argument)) {
             context.getTrace().report(Errors.REIFIED_TYPE_FORBIDDEN_SUBSTITUTION.on(reportErrorOn, argument));
