@@ -39,55 +39,45 @@ expect class StringBuilder : Appendable, CharSequence {
     override fun append(csq: CharSequence?, start: Int, end: Int): StringBuilder
 
     /**
-     * Reverses the contents of this string builder.
+     * Reverses the contents of this string builder and returns this instance.
      *
      * Surrogate pairs included in this string builder are treated as single characters.
      * Therefore, the order of the high-low surrogates is never reversed.
      *
      * Note that the reverse operation may produce new surrogate pairs that were unpaired low-surrogates and high-surrogates before the operation.
      * For example, reversing `"\uDC00\uD800"` produces `"\uD800\uDC00"` which is a valid surrogate pair.
-     *
-     * @return this string builder.
      */
     fun reverse(): StringBuilder
 
     /**
-     * Appends the string representation of the specified [obj] object to this string builder.
+     * Appends the string representation of the specified [obj] object to this string builder and returns this instance.
      *
      * The overall effect is exactly as if the [obj] were converted to a string by the `obj.toString()` method,
      * and then that string was appended to this string builder.
-     *
-     * @return this string builder.
      */
     fun append(obj: Any?): StringBuilder
 
     /**
-     * Appends the string representation of the specified [boolean] to this string builder.
+     * Appends the string representation of the specified [boolean] to this string builder and returns this instance.
      *
      * The overall effect is exactly as if the [boolean] were converted to a string by the `boolean.toString()` method,
      * and then that string was appended to this string builder.
-     *
-     * @return this string builder.
      */
     @SinceKotlin("1.3")
 //    @ExperimentalStdlibApi
     fun append(boolean: Boolean): StringBuilder
 
     /**
-     * Appends characters in the specified [chars] array to this string builder.
+     * Appends characters in the specified [chars] array to this string builder and returns this instance.
      *
      * Characters are appended in order, starting at the index 0.
-     *
-     * @return this string builder.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
     fun append(chars: CharArray): StringBuilder
 
     /**
-     * Appends the specified [string] to this string builder.
-     *
-     * @return this string builder.
+     * Appends the specified [string] to this string builder and returns this instance.
      */
     @SinceKotlin("1.3")
 //    @ExperimentalStdlibApi
@@ -152,45 +142,39 @@ expect class StringBuilder : Appendable, CharSequence {
     fun lastIndexOf(string: String, startIndex: Int): Int
 
     /**
-     * Inserts the string representation of the specified [boolean] into this string builder at the specified [index].
+     * Inserts the string representation of the specified [boolean] into this string builder at the specified [index] and returns this instance.
      *
      * The overall effect is exactly as if the [boolean] were converted to a string by the `boolean.toString()` method,
      * and then that string was inserted into this string builder at the specified [index].
      *
      * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
-     *
-     * @return this string builder.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
     fun insert(index: Int, boolean: Boolean): StringBuilder
 
     /**
-     * Inserts the specified character [char] into this string builder at the specified [index].
+     * Inserts the specified character [char] into this string builder at the specified [index] and returns this instance.
      *
      * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
-     *
-     * @return this string builder.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
     fun insert(index: Int, char: Char): StringBuilder
 
     /**
-     * Inserts characters in the specified [chars] array into this string builder at the specified [index].
+     * Inserts characters in the specified [chars] array into this string builder at the specified [index] and returns this instance.
      *
      * The inserted characters go in same order as in the [chars] array, starting at [index].
      *
      * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
-     *
-     * @return this string builder.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
     fun insert(index: Int, chars: CharArray): StringBuilder
 
     /**
-     * Inserts characters in the specified character sequence [csq] into this string builder at the specified [index].
+     * Inserts characters in the specified character sequence [csq] into this string builder at the specified [index] and returns this instance.
      *
      * The inserted characters go in the same order as in the [csq] character sequence, starting at [index].
      *
@@ -198,33 +182,27 @@ expect class StringBuilder : Appendable, CharSequence {
      * @param csq the character sequence from which characters are inserted. If [csq] is `null`, then the four characters `"null"` are inserted.
      *
      * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
-     *
-     * @return this string builder.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
     fun insert(index: Int, csq: CharSequence?): StringBuilder
 
     /**
-     * Inserts the string representation of the specified [obj] object into this string builder at the specified [index].
+     * Inserts the string representation of the specified [obj] object into this string builder at the specified [index] and returns this instance.
      *
      * The overall effect is exactly as if the [obj] were converted to a string by the `obj.toString()` method,
      * and then that string was inserted into this string builder at the specified [index].
      *
      * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
-     *
-     * @return this string builder.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
     fun insert(index: Int, obj: Any?): StringBuilder
 
     /**
-     * Inserts the [string] into this string builder at the specified [index].
+     * Inserts the [string] into this string builder at the specified [index] and returns this instance.
      *
      * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
-     *
-     * @return this string builder.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
@@ -277,7 +255,7 @@ expect class StringBuilder : Appendable, CharSequence {
 
 
 /**
- * Clears the content of this string builder making it empty.
+ * Clears the content of this string builder making it empty and returns this instance.
  *
  * @sample samples.text.Strings.clearStringBuilder
  */
@@ -294,44 +272,38 @@ public expect fun StringBuilder.clear(): StringBuilder
 public expect operator fun StringBuilder.set(index: Int, value: Char)
 
 /**
- * Replaces characters in the specified range of this string builder with characters in the specified [string].
+ * Replaces characters in the specified range of this string builder with characters in the specified [string] and returns this instance.
  *
  * @param startIndex the beginning (inclusive) of the range to replace.
  * @param endIndex the end (exclusive) of the range to replace.
  * @param string the string to replace with.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] if [startIndex] is less than zero, greater than the length of this string builder, or `startIndex > endIndex`.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
 public expect fun StringBuilder.setRange(startIndex: Int, endIndex: Int, string: String): StringBuilder
 
 /**
- * Removes the character at the specified [index] from this string builder.
+ * Removes the character at the specified [index] from this string builder and returns this instance.
  *
  * If the `Char` at the specified [index] is part of a supplementary code point, this method does not remove the entire supplementary character.
  *
  * @param index the index of `Char` to remove.
  *
  * @throws IndexOutOfBoundsException if [index] is out of bounds of this string builder.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
 public expect fun StringBuilder.deleteAt(index: Int): StringBuilder
 
 /**
- * Removes characters in the specified range from this string builder.
+ * Removes characters in the specified range from this string builder and returns this instance.
  *
  * @param startIndex the beginning (inclusive) of the range to remove.
  * @param endIndex the end (exclusive) of the range to remove.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of this string builder indices or when `startIndex > endIndex`.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
@@ -355,7 +327,7 @@ public expect fun StringBuilder.deleteRange(startIndex: Int, endIndex: Int): Str
 public expect fun StringBuilder.toCharArray(destination: CharArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = this.length)
 
 /**
- * Appends characters in a subarray of the specified [chars] array to this string builder.
+ * Appends characters in a subarray of the specified [chars] array to this string builder and returns this instance.
  *
  * Characters are appended in order, starting at specified [startIndex].
  *
@@ -364,15 +336,13 @@ public expect fun StringBuilder.toCharArray(destination: CharArray, destinationO
  * @param endIndex the end (exclusive) of the subarray to append.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of the [chars] array indices or when `startIndex > endIndex`.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
 public expect fun StringBuilder.appendRange(chars: CharArray, startIndex: Int, endIndex: Int): StringBuilder
 
 /**
- * Appends a subsequence of the specified character sequence [csq] to this string builder.
+ * Appends a subsequence of the specified character sequence [csq] to this string builder and returns this instance.
  *
  * @param csq the character sequence from which a subsequence is appended. If [csq] is `null`,
  *  then characters are appended as if [csq] contained the four characters `"null"`.
@@ -380,15 +350,13 @@ public expect fun StringBuilder.appendRange(chars: CharArray, startIndex: Int, e
  * @param endIndex the end (exclusive) of the subsequence to append.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of the [csq] character sequence indices or when `startIndex > endIndex`.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
 public expect fun StringBuilder.appendRange(csq: CharSequence?, startIndex: Int, endIndex: Int): StringBuilder
 
 /**
- * Inserts characters in a subarray of the specified [chars] array into this string builder at the specified [index].
+ * Inserts characters in a subarray of the specified [chars] array into this string builder at the specified [index] and returns this instance.
  *
  * The inserted characters go in same order as in the [chars] array, starting at [index].
  *
@@ -399,15 +367,13 @@ public expect fun StringBuilder.appendRange(csq: CharSequence?, startIndex: Int,
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of the [chars] array indices or when `startIndex > endIndex`.
  * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
 public expect fun StringBuilder.insertRange(index: Int, chars: CharArray, startIndex: Int, endIndex: Int): StringBuilder
 
 /**
- * Inserts characters in a subsequence of the specified character sequence [csq] into this string builder at the specified [index].
+ * Inserts characters in a subsequence of the specified character sequence [csq] into this string builder at the specified [index] and returns this instance.
  *
  * The inserted characters go in the same order as in the [csq] character sequence, starting at [index].
  *
@@ -419,8 +385,6 @@ public expect fun StringBuilder.insertRange(index: Int, chars: CharArray, startI
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of the [csq] character sequence indices or when `startIndex > endIndex`.
  * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi

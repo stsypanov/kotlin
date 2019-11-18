@@ -9,7 +9,7 @@
 package kotlin.text
 
 /**
- * Clears the content of this string builder making it empty.
+ * Clears the content of this string builder making it empty and returns this instance.
  *
  * @sample samples.text.Strings.clearStringBuilder
  */
@@ -25,15 +25,13 @@ public actual fun StringBuilder.clear(): StringBuilder = apply { setLength(0) }
 public actual inline operator fun StringBuilder.set(index: Int, value: Char): Unit = this.setCharAt(index, value)
 
 /**
- * Replaces characters in the specified range of this string builder with characters in the specified [string].
+ * Replaces characters in the specified range of this string builder with characters in the specified [string] and returns this instance.
  *
  * @param startIndex the beginning (inclusive) of the range to replace.
  * @param endIndex the end (exclusive) of the range to replace.
  * @param string the string to replace with.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] if [startIndex] is less than zero, greater than the length of this string builder, or `startIndex > endIndex`.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
@@ -42,15 +40,13 @@ public actual inline fun StringBuilder.setRange(startIndex: Int, endIndex: Int, 
     this.replace(startIndex, endIndex, string)
 
 /**
- * Removes the character at the specified [index] from this string builder.
+ * Removes the character at the specified [index] from this string builder and returns this instance.
  *
  * If the `Char` at the specified [index] is part of a supplementary code point, this method does not remove the entire supplementary character.
  *
  * @param index the index of `Char` to remove.
  *
  * @throws IndexOutOfBoundsException if [index] is out of bounds of this string builder.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
@@ -58,14 +54,12 @@ public actual inline fun StringBuilder.setRange(startIndex: Int, endIndex: Int, 
 public actual inline fun StringBuilder.deleteAt(index: Int): StringBuilder = this.deleteCharAt(index)
 
 /**
- * Removes characters in the specified range from this string builder.
+ * Removes characters in the specified range from this string builder and returns this instance.
  *
  * @param startIndex the beginning (inclusive) of the range to remove.
  * @param endIndex the end (exclusive) of the range to remove.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of this string builder indices or when `startIndex > endIndex`.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
@@ -92,7 +86,7 @@ public actual inline fun StringBuilder.toCharArray(destination: CharArray, desti
     this.getChars(startIndex, endIndex, destination, destinationOffset)
 
 /**
- * Appends characters in a subarray of the specified [chars] array to this string builder.
+ * Appends characters in a subarray of the specified [chars] array to this string builder and returns this instance.
  *
  * Characters are appended in order, starting at specified [startIndex].
  *
@@ -101,8 +95,6 @@ public actual inline fun StringBuilder.toCharArray(destination: CharArray, desti
  * @param endIndex the end (exclusive) of the subarray to append.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of the [chars] array indices or when `startIndex > endIndex`.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
@@ -111,7 +103,7 @@ public actual inline fun StringBuilder.appendRange(chars: CharArray, startIndex:
     this.append(chars, startIndex, endIndex - startIndex)
 
 /**
- * Appends a subsequence of the specified character sequence [csq] to this string builder.
+ * Appends a subsequence of the specified character sequence [csq] to this string builder and returns this instance.
  *
  * @param csq the character sequence from which a subsequence is appended. If [csq] is `null`,
  *  then characters are appended as if [csq] contained the four characters `"null"`.
@@ -119,8 +111,6 @@ public actual inline fun StringBuilder.appendRange(chars: CharArray, startIndex:
  * @param endIndex the end (exclusive) of the subsequence to append.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of the [csq] character sequence indices or when `startIndex > endIndex`.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
@@ -129,7 +119,7 @@ public actual inline fun StringBuilder.appendRange(csq: CharSequence?, startInde
     this.append(csq, startIndex, endIndex)
 
 /**
- * Inserts characters in a subarray of the specified [chars] array into this string builder at the specified [index].
+ * Inserts characters in a subarray of the specified [chars] array into this string builder at the specified [index] and returns this instance.
  *
  * The inserted characters go in same order as in the [chars] array, starting at [index].
  *
@@ -140,8 +130,6 @@ public actual inline fun StringBuilder.appendRange(csq: CharSequence?, startInde
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of the [chars] array indices or when `startIndex > endIndex`.
  * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
@@ -150,7 +138,7 @@ public actual inline fun StringBuilder.insertRange(index: Int, chars: CharArray,
     this.insert(index, chars, startIndex, endIndex - startIndex)
 
 /**
- * Inserts characters in a subsequence of the specified character sequence [csq] into this string builder at the specified [index].
+ * Inserts characters in a subsequence of the specified character sequence [csq] into this string builder at the specified [index] and returns this instance.
  *
  * The inserted characters go in the same order as in the [csq] character sequence, starting at [index].
  *
@@ -162,8 +150,6 @@ public actual inline fun StringBuilder.insertRange(index: Int, chars: CharArray,
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of the [csq] character sequence indices or when `startIndex > endIndex`.
  * @throws IndexOutOfBoundsException if [index] is less than zero or greater than the length of this string builder.
- *
- * @return this string builder.
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
