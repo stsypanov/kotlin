@@ -13,7 +13,7 @@ package kotlin.text
 public actual class StringBuilder actual constructor(content: String) : Appendable, CharSequence {
     /** Constructs an empty string builder with the specified initial [capacity]. */
     actual constructor(capacity: Int) : this() {
-        _capacity = capacity
+        this.asDynamic()._capacity = capacity
     }
 
     /** Constructs a string builder that contains the same characters as the specified [content] char sequence. */
@@ -23,7 +23,6 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
     actual constructor() : this("")
 
     private var string: String = content
-    private var _capacity = content.length
 
     actual override val length: Int
         get() = string.asDynamic().length
@@ -138,7 +137,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
-    actual fun capacity(): Int = maxOf(_capacity, length)
+    actual fun capacity(): Int = if (this.asDynamic()._capacity != undefined) maxOf(this.asDynamic()._capacity, length) else length
 
     /**
      * Ensures that the capacity of this string builder is at least equal to the specified [minimumCapacity].
@@ -150,7 +149,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
     @ExperimentalStdlibApi
     actual fun ensureCapacity(minimumCapacity: Int) {
         if (minimumCapacity > capacity()) {
-            _capacity = minimumCapacity
+            this.asDynamic()._capacity = minimumCapacity
         }
     }
 
@@ -368,7 +367,9 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
     actual fun trimToSize() {
-        _capacity = length
+        if (this.asDynamic()._capacity != undefined) {
+            this.asDynamic()._capacity = length
+        }
     }
 
     override fun toString(): String = string
