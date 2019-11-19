@@ -26,7 +26,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
     /** Constructs an empty string builder. */
     actual constructor() : this("")
 
-    private var string: String = content
+    private var string: String = if (content !== undefined) content else ""
 
     actual override val length: Int
         get() = string.asDynamic().length
@@ -133,7 +133,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
-    actual fun capacity(): Int = if (this.asDynamic()._capacity != undefined) maxOf(this.asDynamic()._capacity, length) else length
+    actual fun capacity(): Int = if (this.asDynamic()._capacity !== undefined) maxOf(this.asDynamic()._capacity, length) else length
 
     /**
      * Ensures that the capacity of this string builder is at least equal to the specified [minimumCapacity].
@@ -356,7 +356,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
     actual fun trimToSize() {
-        if (this.asDynamic()._capacity != undefined) {
+        if (this.asDynamic()._capacity !== undefined) {
             this.asDynamic()._capacity = length
         }
     }
