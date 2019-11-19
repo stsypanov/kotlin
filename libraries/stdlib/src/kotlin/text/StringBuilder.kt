@@ -315,7 +315,7 @@ public expect fun StringBuilder.deleteRange(startIndex: Int, endIndex: Int): Str
  * @param destination the array to copy to.
  * @param destinationOffset the position in the array to copy to, 0 by default.
  * @param startIndex the beginning (inclusive) of the range to copy, 0 by default.
- * @param endIndex the end (exclusive) of the range to copy, length of this string by default.
+ * @param endIndex the end (exclusive) of the range to copy, length of this string builder by default.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of this string builder indices or when `startIndex > endIndex`.
  * @throws IndexOutOfBoundsException when the subrange doesn't fit into the [destination] array starting at the specified [destinationOffset],
@@ -323,7 +323,6 @@ public expect fun StringBuilder.deleteRange(startIndex: Int, endIndex: Int): Str
  */
 @SinceKotlin("1.3")
 @ExperimentalStdlibApi
-@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public expect fun StringBuilder.toCharArray(destination: CharArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = this.length)
 
 /**

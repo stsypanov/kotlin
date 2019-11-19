@@ -72,7 +72,7 @@ public actual inline fun StringBuilder.deleteRange(startIndex: Int, endIndex: In
  * @param destination the array to copy to.
  * @param destinationOffset the position in the array to copy to, 0 by default.
  * @param startIndex the beginning (inclusive) of the range to copy, 0 by default.
- * @param endIndex the end (exclusive) of the range to copy, length of this string by default.
+ * @param endIndex the end (exclusive) of the range to copy, length of this string builder by default.
  *
  * @throws IndexOutOfBoundsException or [IllegalArgumentException] when [startIndex] or [endIndex] is out of range of this string builder indices or when `startIndex > endIndex`.
  * @throws IndexOutOfBoundsException when the subrange doesn't fit into the [destination] array starting at the specified [destinationOffset],
