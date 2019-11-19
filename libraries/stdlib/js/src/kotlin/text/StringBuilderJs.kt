@@ -14,8 +14,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
     /**
      * Constructs an empty string builder with the specified initial [capacity].
      *
-     * Note that the Kotlin/JS string builder may use [String] as the backing storage,
-     * thus it may construct a string builder with empty backing storage.
+     * In Kotlin/JS implementation of StringBuilder the initial capacity has no effect on the further performance of operations.
      */
     actual constructor(capacity: Int) : this() {
         this.asDynamic()._capacity = capacity
@@ -130,9 +129,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
      *
      * The capacity is the maximum length this string builder can have before an allocation occurs.
      *
-     * Note that the Kotlin/JS string builder may use [String] as the backing storage,
-     * thus the size of the backing storage may always be equal to the length of the string builder
-     * and the value returned from this method may not indicate the actual size of the backing storage.
+     * In Kotlin/JS implementation of StringBuilder the value returned from this method may not indicate the actual size of the backing storage.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
@@ -144,8 +141,8 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
      * If the current capacity is less than the [minimumCapacity], a new backing storage is allocated with greater capacity.
      * Otherwise, this method takes no action and simply returns.
      *
-     * Note that the Kotlin/JS string builder may use [String] as the backing storage,
-     * thus the size of the backing storage may always be equal to the length of the string builder.
+     * In Kotlin/JS implementation of StringBuilder the size of the backing storage is not extended to comply the given [minimumCapacity],
+     * thus calling this method has no effect on the further performance of operations.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
@@ -354,8 +351,7 @@ public actual class StringBuilder actual constructor(content: String) : Appendab
      * then it may be resized to become more space efficient.
      * Calling this method may, but is not required to, affect the value of the [capacity] property.
      *
-     * Note that the Kotlin/JS string builder may use [String] as the backing storage,
-     * thus the size of the backing storage may always be equal to the length of the string builder.
+     * In Kotlin/JS implementation of StringBuilder the size of the backing storage is always equal to the length of the string builder.
      */
     @SinceKotlin("1.3")
     @ExperimentalStdlibApi
