@@ -18615,6 +18615,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTest {
                 runTest("compiler/testData/diagnostics/tests/samConversions/SAMAfterSubstitutionKT.kt");
             }
 
+            @TestMetadata("severalSamParametersDeprecation.kt")
+            public void testSeveralSamParametersDeprecation() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/samConversions/severalSamParametersDeprecation.kt");
+            }
+
             @TestMetadata("SimpleCorrect.kt")
             public void testSimpleCorrect() throws Exception {
                 runTest("compiler/testData/diagnostics/tests/samConversions/SimpleCorrect.kt");

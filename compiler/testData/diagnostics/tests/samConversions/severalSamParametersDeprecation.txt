@@ -1,0 +1,12 @@
+package
+
+public fun test(/*0*/ j: JClass): kotlin.Unit
+
+public open class JClass {
+    public constructor JClass()
+    public open override /*1*/ /*fake_override*/ fun equals(/*0*/ other: kotlin.Any?): kotlin.Boolean
+    public open fun foo(/*0*/ r1: java.lang.Runnable!, /*1*/ r2: java.lang.Runnable!): kotlin.Number!
+    public open fun foo(/*0*/ r1: kotlin.Any!, /*1*/ r2: kotlin.Any!): kotlin.String!
+    public open override /*1*/ /*fake_override*/ fun hashCode(): kotlin.Int
+    public open override /*1*/ /*fake_override*/ fun toString(): kotlin.String
+}
