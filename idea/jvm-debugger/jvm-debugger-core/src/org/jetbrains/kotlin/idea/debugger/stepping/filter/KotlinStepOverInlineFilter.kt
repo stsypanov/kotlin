@@ -38,13 +38,11 @@ class KotlinStepOverInlineFilter(
     override fun locationMatches(process: DebugProcessImpl, location: Location): Boolean {
         val lineNumber = location.safeLineNumber()
 
-        if (lineNumber < 0) {
-            return false
-        } else if (location.safeSourceName() != fileName || lineNumber !in methodLines) {
+        if (location.safeSourceName() == fileName) {
+            return lineNumber !in linesToSkip
+        } else {
             return true
         }
-
-        return lineNumber !in linesToSkip
     }
 
     override fun getCallingExpressionLines(): Range<Int>? = null
