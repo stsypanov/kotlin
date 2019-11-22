@@ -20,35 +20,31 @@ import com.intellij.debugger.engine.DebugProcessImpl
 import com.intellij.debugger.engine.SuspendContextImpl
 import com.intellij.openapi.project.Project
 import com.intellij.util.Range
-import com.sun.jdi.LocalVariable
 import com.sun.jdi.Location
+import org.jetbrains.kotlin.idea.debugger.safeLineNumber
+import org.jetbrains.kotlin.idea.debugger.safeSourceName
 import org.jetbrains.kotlin.idea.debugger.stepping.KotlinMethodFilter
-import org.jetbrains.kotlin.idea.debugger.stepping.getInlineRangeLocalVariables
 
-class StepOverFilterData(
-    val lineNumber: Int,
-    val stepOverLines: Set<Int>,
-    val inlineRangeVariables: List<LocalVariable>
-)
-
-class KotlinStepOverInlineFilter(val project: Project, val data: StepOverFilterData) : KotlinMethodFilter {
+class KotlinStepOverInlineFilter(
+    val project: Project,
+    private val linesToSkip: Set<Int>,
+    private val methodLines: IntRange,
+    private val fileName: String
+) : KotlinMethodFilter {
     override fun locationMatches(context: SuspendContextImpl, location: Location): Boolean {
-        val frameProxy = context.frameProxy ?: return true
-
-        val currentLine = location.lineNumber()
-        if (!(data.stepOverLines.contains(currentLine))) {
-            return currentLine != data.lineNumber
-        }
-
-        val visibleInlineVariables = getInlineRangeLocalVariables(frameProxy)
-
-        // Our ranges check missed exit from inline function. This is when breakpoint was in last statement of inline functions.
-        // This can be observed by inline local range-variables. Absence of any means step out was done.
-        return data.inlineRangeVariables.any { !visibleInlineVariables.contains(it) }
+        return locationMatches(context.debugProcess, location)
     }
 
     override fun locationMatches(process: DebugProcessImpl, location: Location): Boolean {
-        throw IllegalStateException() // Should not be called from Kotlin hint
+        val lineNumber = location.safeLineNumber()
+
+        if (lineNumber < 0) {
+            return false
+        } else if (location.safeSourceName() != fileName || lineNumber !in methodLines) {
+            return true
+        }
+
+        return lineNumber !in linesToSkip
     }
 
     override fun getCallingExpressionLines(): Range<Int>? = null

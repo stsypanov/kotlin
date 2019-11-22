@@ -28,29 +28,20 @@ import com.sun.jdi.request.StepRequest
 class KotlinStepOverInlinedLinesHint(
     stepThread: ThreadReferenceProxyImpl,
     suspendContext: SuspendContextImpl,
-    methodFilter: KotlinMethodFilter
-) : RequestHint(stepThread, suspendContext, methodFilter) {
+    private val filter: KotlinMethodFilter
+) : RequestHint(stepThread, suspendContext, StepRequest.STEP_LINE, StepRequest.STEP_OVER, filter) {
     private companion object {
         private val LOG = Logger.getInstance(KotlinStepOverInlinedLinesHint::class.java)
     }
-
-    private val filter = methodFilter
-
-    override fun getDepth(): Int = StepRequest.STEP_OVER
 
     override fun getNextStepDepth(context: SuspendContextImpl): Int {
         try {
             val frameProxy = context.frameProxy
             if (frameProxy != null) {
                 if (isTheSameFrame(context)) {
-                    return if (filter.locationMatches(context, frameProxy.location())) {
-                        STOP
-                    } else {
-                        StepRequest.STEP_OVER
-                    }
-                }
-
-                if (isSteppedOut) {
+                    val isAcceptable = (filter.locationMatches(context, frameProxy.location()))
+                    return if (isAcceptable) STOP else StepRequest.STEP_OVER
+                } else if (isSteppedOut) {
                     return STOP
                 }
 
