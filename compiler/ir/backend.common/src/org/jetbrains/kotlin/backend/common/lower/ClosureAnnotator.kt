@@ -27,6 +27,7 @@ import org.jetbrains.kotlin.ir.expressions.IrFunctionReference
 import org.jetbrains.kotlin.ir.expressions.IrPropertyReference
 import org.jetbrains.kotlin.ir.expressions.IrValueAccessExpression
 import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
+import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.isLocal
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
@@ -65,11 +66,14 @@ class ClosureAnnotator(irFile: IrFile) {
          *                  variables declared in the node.
          */
         fun buildClosure(): Closure {
+            val thisTranslation = buildThisTranslationMap()
             val result = mutableSetOf<IrValueSymbol>().apply { addAll(capturedValues) }
             includes.forEach { builder ->
                 if (!builder.processed) {
                     builder.processed = true
-                    builder.buildClosure().capturedValues.filterTo(result) { isExternal(it.owner) }
+                    builder.buildClosure().capturedValues
+                        .map { thisTranslation[it] ?: it }
+                        .filterTo(result) { isExternal(it.owner) }
                 }
             }
             // TODO: We can save the closure and reuse it.
@@ -93,6 +97,28 @@ class ClosureAnnotator(irFile: IrFile) {
 
         fun isExternal(valueDeclaration: IrValueDeclaration): Boolean {
             return !declaredValues.contains(valueDeclaration)
+        }
+
+        // `this` references to classes are to be replaced with `this` parameter references of functions
+        private fun buildThisTranslationMap(): Map<IrValueSymbol, IrValueSymbol> {
+            val result = mutableMapOf<IrValueSymbol, IrValueSymbol>()
+            var current: IrDeclaration? = owner
+            while (current != null) {
+                (current as? IrFunction)?.let { function ->
+                    function.dispatchReceiverParameter?.apply {
+                        type.classOrNull?.let {
+                            result[it.owner.thisReceiver!!.symbol] = this.symbol
+                        }
+                    }
+                    function.extensionReceiverParameter?.apply {
+                        type.classOrNull?.let {
+                            result[it.owner.thisReceiver!!.symbol] = this.symbol
+                        }
+                    }
+                }
+                current = current.parent as? IrDeclaration
+            }
+            return result
         }
     }
 
