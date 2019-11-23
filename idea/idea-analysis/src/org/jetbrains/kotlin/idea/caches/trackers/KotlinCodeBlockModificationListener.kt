@@ -238,7 +238,7 @@ class KotlinCodeBlockModificationListener(
                                         // adding annotations to accessor is the same as change contract of property
                                         (element !is KtAnnotated || element.annotationEntries.isEmpty())
                             }
-                                ?.let { return BlockModificationScopeElement(blockDeclaration, it) }
+                                ?.let { return BlockModificationScopeElement(it, it) }
                         }
                     }
                 }
