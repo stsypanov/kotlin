@@ -282,6 +282,8 @@ private val jvmFilePhases =
         staticDefaultFunctionPhase then
         syntheticAccessorPhase then
 
+
+        jvmArgumentNullabilityAssertions then
         toArrayPhase then
         jvmBuiltinOptimizationLoweringPhase then
         additionalClassAnnotationPhase then
