@@ -2,7 +2,7 @@
 // KOTLIN_CONFIGURATION_FLAGS: +JVM.NO_EXCEPTION_ON_EXPLICIT_EQUALS_FOR_BOXED_NULL
 // TARGET_BACKEND: JVM
 // WITH_RUNTIME
-// FILE: test.kt
+// FILE: equalsNull_withExplicitFlag.kt
 
 // IGNORE_BACKEND: JVM_IR
 // JVM_IR supports behavior since Kotlin 1.3,
