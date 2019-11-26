@@ -219,14 +219,39 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
     private val rootCacheDirectory
         get() = File(File(File(project.konanHome, "klib"), "cache"), optionsAwareCacheName)
 
+    private fun getAllDependencies(dependency: ResolvedDependency): List<ResolvedDependency> {
+        val allDependencies = mutableListOf<ResolvedDependency>()
+
+        fun traverseAllDependencies(dependency: ResolvedDependency) {
+            allDependencies.add(dependency)
+            dependency.children.forEach { traverseAllDependencies(it) }
+        }
+
+        dependency.children.forEach { traverseAllDependencies(it) }
+        return allDependencies
+    }
+
+    private fun computeDependenciesHash(dependency: ResolvedDependency): Long {
+        var result = 0L
+        getAllDependencies(dependency)
+            .map { it.moduleName + it.moduleVersion }
+            .sortedBy { it }
+            .flatMap { it.asIterable() }
+            .forEach { result = result * 497 + it.toInt() }
+        return result
+    }
+
     private fun getCacheDirectory(dependency: ResolvedDependency, create: Boolean): File {
         val moduleCacheDirectory = File(rootCacheDirectory, dependency.moduleName)
         if (create)
             moduleCacheDirectory.mkdir()
-        val cacheDirectory = File(moduleCacheDirectory, dependency.moduleVersion)
+        val versionCacheDirectory = File(moduleCacheDirectory, dependency.moduleVersion)
         if (create)
-            cacheDirectory.mkdir()
-        return cacheDirectory
+            versionCacheDirectory.mkdir()
+        val dependenciesHashCacheDirectory = File(versionCacheDirectory, computeDependenciesHash(dependency).toString())
+        if (create)
+            dependenciesHashCacheDirectory.mkdir()
+        return dependenciesHashCacheDirectory
     }
 
     private fun needCache(libraryPath: String) = libraryPath.contains(".gradle") && libraryPath.endsWith(".klib")
@@ -241,10 +266,11 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
         if (artifactsToAddToCache.isEmpty()) return
 
         val cacheDirectory = getCacheDirectory(dependency, true)
-        val immediateDependencyCacheDirectories = dependency.children
+        val dependenciesCacheDirectories = getAllDependencies(dependency)
             .map { getCacheDirectory(it, false) }
             .filter { it.exists() }
         for (artifact in artifactsToAddToCache) {
+            project.logger.info("Compiling ${dependency.name} to cache")
             val args = mutableListOf(
                 "-p", "dynamic_cache",
                 "-target", target
@@ -255,7 +281,7 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
             args += "-Xcache-directory=${cacheDirectory.absolutePath}"
             args += "-Xcache-directory=${rootCacheDirectory.absolutePath}"
 
-            immediateDependencyCacheDirectories.forEach {
+            dependenciesCacheDirectories.forEach {
                 args += "-Xcache-directory=${it.absolutePath}"
             }
             dependency.children
@@ -329,9 +355,11 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
             val compileDependencyConfiguration = project.configurations.getByName(compilation.compileDependencyConfigurationName)
             for (root in compileDependencyConfiguration.resolvedConfiguration.firstLevelModuleDependencies) {
                 ensureDependencyPrecached(root, visitedDependencies)
-                val cacheDirectory = getCacheDirectory(root, false)
-                if (cacheDirectory.exists())
-                    addKey("-Xcache-directory=${cacheDirectory.absolutePath}", true)
+                for (dependency in listOf(root) + getAllDependencies(root)) {
+                    val cacheDirectory = getCacheDirectory(dependency, false)
+                    if (cacheDirectory.exists())
+                        addKey("-Xcache-directory=${cacheDirectory.absolutePath}", true)
+                }
             }
         }
     }
