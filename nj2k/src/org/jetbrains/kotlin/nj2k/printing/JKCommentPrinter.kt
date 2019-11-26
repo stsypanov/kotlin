@@ -23,7 +23,7 @@ internal class JKCommentPrinter(val printer: JKPrinter) {
             // hack till #KT-16845 is fixed
             if (!isSingleline && text.endsWith("/*/")) {
                 text.replaceRange(text.length - "/*/".length, text.length, "/ */")
-            } else text
+            } else indent?.let { it + text } ?: text
         } else null
 
 
@@ -34,7 +34,7 @@ internal class JKCommentPrinter(val printer: JKPrinter) {
             val text = comment.createText() ?: continue
             if (needNewLine) appendln() else append(' ')
             append(text)
-            needNewLine = text.startsWith("//") || '\n' in text
+            needNewLine = comment.text.startsWith("//") || '\n' in text
         }
     }
 

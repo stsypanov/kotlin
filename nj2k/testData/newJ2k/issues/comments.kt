@@ -15,7 +15,8 @@ internal class C {
     /**
      * This is a function doc comment.
      */
-    fun foo() { /* This is a function comment */
+    fun foo() {
+        /* This is a function comment */
     }
 
     //simple one line comment for function
