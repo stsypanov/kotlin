@@ -118,6 +118,11 @@ public class FirDiagnosticsWithStdlibTestGenerated extends AbstractFirDiagnostic
         runTest("compiler/fir/resolve/testData/resolve/stdlib/javaLangComparator.kt");
     }
 
+    @TestMetadata("kotlinComparatorAlias.kt")
+    public void testKotlinComparatorAlias() throws Exception {
+        runTest("compiler/fir/resolve/testData/resolve/stdlib/kotlinComparatorAlias.kt");
+    }
+
     @TestMetadata("listPlusAssign.kt")
     public void testListPlusAssign() throws Exception {
         runTest("compiler/fir/resolve/testData/resolve/stdlib/listPlusAssign.kt");
@@ -494,24 +499,6 @@ public class FirDiagnosticsWithStdlibTestGenerated extends AbstractFirDiagnostic
         @TestMetadata("StaticGenericMethod.kt")
         public void testStaticGenericMethod() throws Exception {
             runTest("compiler/fir/resolve/testData/resolve/stdlib/j+k/StaticGenericMethod.kt");
-        }
-    }
-
-    @TestMetadata("compiler/fir/resolve/testData/resolve/stdlib/problems")
-    @TestDataPath("$PROJECT_ROOT")
-    @RunWith(JUnit3RunnerWithInners.class)
-    public static class Problems extends AbstractFirDiagnosticsWithStdlibTest {
-        private void runTest(String testDataFilePath) throws Exception {
-            KotlinTestUtils.runTest(this::doTest, this, testDataFilePath);
-        }
-
-        public void testAllFilesPresentInProblems() throws Exception {
-            KotlinTestUtils.assertAllTestsPresentByMetadata(this.getClass(), new File("compiler/fir/resolve/testData/resolve/stdlib/problems"), Pattern.compile("^([^.]+)\\.kt$"), true);
-        }
-
-        @TestMetadata("unresolvedComparator.kt")
-        public void testUnresolvedComparator() throws Exception {
-            runTest("compiler/fir/resolve/testData/resolve/stdlib/problems/unresolvedComparator.kt");
         }
     }
 }
