@@ -29,7 +29,8 @@ import org.jetbrains.org.objectweb.asm.commons.InstructionAdapter
 open class FunctionCodegen(
     private val irFunction: IrFunction,
     private val classCodegen: ClassCodegen,
-    private val inlinedInto: ExpressionCodegen? = null
+    private val inlinedInto: ExpressionCodegen? = null,
+    private val argumentTo: IrFunction? = null
 ) {
     val context = classCodegen.context
     val state = classCodegen.state
@@ -90,7 +91,7 @@ open class FunctionCodegen(
                 )
                 else -> methodVisitor
             }
-            ExpressionCodegen(functionView, signature, frameMap, InstructionAdapter(methodVisitor), classCodegen, inlinedInto).generate()
+            ExpressionCodegen(functionView, signature, frameMap, InstructionAdapter(methodVisitor), classCodegen, inlinedInto, argumentTo).generate()
             methodVisitor.visitMaxs(-1, -1)
             continuationClassBuilder?.done()
         }

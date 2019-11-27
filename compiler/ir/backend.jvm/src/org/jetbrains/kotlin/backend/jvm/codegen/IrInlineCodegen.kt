@@ -168,8 +168,8 @@ class IrInlineCodegen(
     ): LambdaInfo {
         val referencedFunction = irReference.symbol.owner
         return IrExpressionLambdaImpl(
-            irReference, referencedFunction, codegen.typeMapper, codegen.methodSignatureMapper, codegen.context, parameter.isCrossinline,
-            boundReceiver != null, parameter.type.isExtensionFunctionType
+            irReference, referencedFunction, function, codegen.typeMapper, codegen.methodSignatureMapper, codegen.context,
+            parameter.isCrossinline, boundReceiver != null, parameter.type.isExtensionFunctionType
         ).also { lambda ->
             val closureInfo = invocationParamBuilder.addNextValueParameter(type, true, null, parameter.index)
             closureInfo.functionalArgument = lambda
@@ -189,6 +189,7 @@ class IrInlineCodegen(
 class IrExpressionLambdaImpl(
     val reference: IrFunctionReference,
     val function: IrFunction,
+    val argumentTo: IrFunction,
     private val typeMapper: IrTypeMapper,
     methodSignatureMapper: MethodSignatureMapper,
     private val context: JvmBackendContext,

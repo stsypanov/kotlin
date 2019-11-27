@@ -40,6 +40,7 @@ import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
+import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.resolve.jvm.AsmTypes
 import org.jetbrains.kotlin.resolve.jvm.AsmTypes.OBJECT_TYPE
 import org.jetbrains.kotlin.resolve.jvm.jvmSignature.JvmMethodParameterKind
@@ -101,7 +102,8 @@ class ExpressionCodegen(
     override val frameMap: IrFrameMap,
     val mv: InstructionAdapter,
     val classCodegen: ClassCodegen,
-    val inlinedInto: ExpressionCodegen?
+    val inlinedInto: ExpressionCodegen?,
+    val argumentTo: IrFunction? = null
 ) : IrElementVisitor<PromisedValue, BlockInfo>, BaseExpressionCodegen {
 
     var finallyDepth = 0
@@ -186,6 +188,10 @@ class ExpressionCodegen(
 
     fun generate() {
         mv.visitCode()
+        var inlineFunctionLocalIndex = -1
+        if (irFunction.isInline || inlinedInto != null) {
+            inlineFunctionLocalIndex = allocateFakeInliningLocalVariable()
+        }
         val startLabel = markNewLabel()
         val info = BlockInfo()
         val body = irFunction.body!!
@@ -208,6 +214,41 @@ class ExpressionCodegen(
         val endLabel = markNewLabel()
         writeLocalVariablesInTable(info, endLabel)
         writeParameterInLocalVariableTable(startLabel, endLabel)
+        writeFakeInliningLocalsInLocalVariableTable(inlineFunctionLocalIndex, startLabel, endLabel)
+    }
+
+    private fun writeFakeInliningLocalsInLocalVariableTable(
+        inlineFunctionLocalIndex: Int,
+        startLabel: Label,
+        endLabel: Label
+    ) {
+        if (inlineFunctionLocalIndex != -1) {
+            val currentFunctionName = methodSignatureMapper.mapFunctionName(irFunction)
+            val fakeVariableName = if (irFunction.isInline) {
+                "${JvmAbi.LOCAL_VARIABLE_NAME_PREFIX_INLINE_FUNCTION}$currentFunctionName"
+            } else {
+                val argumentToFunctionName = methodSignatureMapper.mapFunctionName(argumentTo!!)
+                val internalName = classCodegen.type.internalName
+                val thisType = internalName.substringAfterLast('/', internalName)
+                val lambdaReference = "$thisType\$$currentFunctionName"
+                "${JvmAbi.LOCAL_VARIABLE_NAME_PREFIX_INLINE_ARGUMENT}-$argumentToFunctionName-$lambdaReference"
+            }
+            mv.visitLocalVariable(
+                fakeVariableName,
+                Type.INT_TYPE.descriptor,
+                null,
+                startLabel,
+                endLabel,
+                inlineFunctionLocalIndex
+            )
+        }
+    }
+
+    private fun allocateFakeInliningLocalVariable(): Int {
+        val inlineFunctionLocalIndex = frameMap.enterTemp(Type.INT_TYPE)
+        mv.iconst(0)
+        mv.store(inlineFunctionLocalIndex, Type.INT_TYPE)
+        return inlineFunctionLocalIndex
     }
 
     private fun generateNonNullAssertions() {

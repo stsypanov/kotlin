@@ -68,9 +68,9 @@ class IrSourceCompilerForInline(
     override val lazySourceMapper: DefaultSourceMapper
         get() = codegen.classCodegen.getOrCreateSourceMapper()
 
-    private fun makeInlineNode(function: IrFunction, classCodegen: ClassCodegen, isLambda: Boolean): SMAPAndMethodNode {
+    private fun makeInlineNode(function: IrFunction, argumentTo: IrFunction?, classCodegen: ClassCodegen, isLambda: Boolean): SMAPAndMethodNode {
         var node: MethodNode? = null
-        val functionCodegen = object : FunctionCodegen(function, classCodegen, codegen.takeIf { isLambda }) {
+        val functionCodegen = object : FunctionCodegen(function, classCodegen, codegen.takeIf { isLambda }, argumentTo) {
             override fun createMethod(flags: Int, signature: JvmMethodGenericSignature): MethodVisitor {
                 val asmMethod = signature.asmMethod
                 node = MethodNode(Opcodes.API_VERSION, flags, asmMethod.name, asmMethod.descriptor, signature.genericsSignature, null)
@@ -81,8 +81,10 @@ class IrSourceCompilerForInline(
         return SMAPAndMethodNode(node!!, SMAP(classCodegen.getOrCreateSourceMapper().resultMappings))
     }
 
-    override fun generateLambdaBody(lambdaInfo: ExpressionLambda): SMAPAndMethodNode =
-        makeInlineNode((lambdaInfo as IrExpressionLambdaImpl).function, codegen.classCodegen, true)
+    override fun generateLambdaBody(lambdaInfo: ExpressionLambda): SMAPAndMethodNode {
+        val irExpressionLambda = lambdaInfo as IrExpressionLambdaImpl
+        return makeInlineNode(irExpressionLambda.function, irExpressionLambda.argumentTo, codegen.classCodegen, true)
+    }
 
     override fun doCreateMethodNodeFromSource(
         callableDescriptor: FunctionDescriptor,
@@ -91,7 +93,7 @@ class IrSourceCompilerForInline(
         asmMethod: Method
     ): SMAPAndMethodNode {
         assert(callableDescriptor == callee.symbol.descriptor.original) { "Expected $callableDescriptor got ${callee.descriptor.original}" }
-        return makeInlineNode(callee, FakeClassCodegen(callee, codegen.classCodegen), false)
+        return makeInlineNode(callee, null, FakeClassCodegen(callee, codegen.classCodegen), false)
     }
 
     override fun hasFinallyBlocks() = data.hasFinallyBlocks()
