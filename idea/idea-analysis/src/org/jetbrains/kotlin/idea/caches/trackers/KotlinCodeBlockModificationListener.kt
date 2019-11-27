@@ -275,6 +275,16 @@ class KotlinCodeBlockModificationListener(
                         }
                 }
 
+                is KtSecondaryConstructor -> {
+                    blockDeclaration
+                        ?.takeIf { it.bodyExpression?.isAncestor(element) ?: false || it.getDelegationCallOrNull()?.isAncestor(element) ?: false }
+                        ?.let { ktConstructor ->
+                            (KtPsiUtil.getTopmostParentOfTypes(blockDeclaration, KtClass::class.java) as? KtElement)?.let {
+                                return BlockModificationScopeElement(it, ktConstructor)
+                            }
+                        }
+                }
+
                 // TODO: still under consideration - is it worth to track changes of private properties / methods
                 // problem could be in diagnostics - it is worth to manage it with modTracker
 //                is KtClass -> {
@@ -301,6 +311,7 @@ class KotlinCodeBlockModificationListener(
             KtProperty::class.java,
             KtNamedFunction::class.java,
             KtClassInitializer::class.java,
+            KtSecondaryConstructor::class.java,
             KtScriptInitializer::class.java
         )
 
