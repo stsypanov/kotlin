@@ -28,6 +28,11 @@ public class OutOfBlockModificationTestGenerated extends AbstractOutOfBlockModif
         KotlinTestUtils.assertAllTestsPresentByMetadata(this.getClass(), new File("idea/testData/codeInsight/outOfBlock"), Pattern.compile("^(.+)\\.(kt|kts)$"), true);
     }
 
+    @TestMetadata("Comment.kt")
+    public void testComment() throws Exception {
+        runTest("idea/testData/codeInsight/outOfBlock/Comment.kt");
+    }
+
     @TestMetadata("FunBlock.kt")
     public void testFunBlock() throws Exception {
         runTest("idea/testData/codeInsight/outOfBlock/FunBlock.kt");
@@ -91,6 +96,11 @@ public class OutOfBlockModificationTestGenerated extends AbstractOutOfBlockModif
     @TestMetadata("InClassPropertyAccessor.kt")
     public void testInClassPropertyAccessor() throws Exception {
         runTest("idea/testData/codeInsight/outOfBlock/InClassPropertyAccessor.kt");
+    }
+
+    @TestMetadata("InComment.kt")
+    public void testInComment() throws Exception {
+        runTest("idea/testData/codeInsight/outOfBlock/InComment.kt");
     }
 
     @TestMetadata("InExtensionFunction.kt")
