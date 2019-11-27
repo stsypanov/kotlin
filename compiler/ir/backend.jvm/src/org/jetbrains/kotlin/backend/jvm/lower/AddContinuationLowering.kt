@@ -114,22 +114,19 @@ private class AddContinuationLowering(private val context: JvmBackendContext) : 
                 "extension receiver should be lowered to parameter in LocalDeclarationsLowering"
             }
 
-            val receiverField = info.function.loweredExtensionReceiver()?.let {
-                assert(info.arity != 0)
-                addField("\$p", it.type)
-            }
-
-            val parametersFields = info.function.valueParameters.mapNotNull {
+            var receiverField: IrField? = null
+            val parametersFields = info.function.valueParameters.map {
                 if (it.name.isSpecial) {
                     assert(it.name.asString() == "<this>") { "Unexpected special parameter name: ${it.name.asString()}" }
-                    null
+                    receiverField = addField("\$p", it.type)
+                    receiverField!!
                 } else {
                     addField(it.name.asString(), it.type)
                 }
             }
-            val parametersWithoutArguments = parametersFields.withIndex()
+
+            val freeParameters = parametersFields.withIndex()
                 .mapNotNull { (i, field) -> if (info.reference.getValueArgument(i) == null) field else null }
-            val parametersWithArguments = parametersFields - parametersWithoutArguments
             val constructor = addPrimaryConstructorForLambda(info.arity, info.reference, parametersFields)
             val secondaryConstructor = addSecondaryConstructorForLambda(constructor)
             val invokeToOverride = functionNClass.functions.single {
@@ -137,11 +134,16 @@ private class AddContinuationLowering(private val context: JvmBackendContext) : 
             }
             val invokeSuspend = addInvokeSuspendForLambda(info.function, parametersFields, receiverField)
             if (info.arity <= 1) {
-                val singleParameterField = receiverField ?: parametersWithoutArguments.singleOrNull()
-                val create = addCreate(constructor, suspendLambda, info, parametersWithArguments, singleParameterField)
+                assert(freeParameters.size <= 1) {
+                    "Suspend lambda with arity <= 1 should have not more than one free parameter, but ${freeParameters.size}"
+                }
+                val singleParameterField = freeParameters.singleOrNull()
+                val capturedParameters = parametersFields.withIndex()
+                    .mapNotNull { (i, field) -> if (info.reference.getValueArgument(i) != null) field else null }
+                val create = addCreate(constructor, suspendLambda, info, capturedParameters, singleParameterField)
                 addInvoke(create, invokeSuspend, invokeToOverride, singleParameterField, emptyList(), isConstructorCall = false)
             } else {
-                addInvoke(constructor, invokeSuspend, invokeToOverride, receiverField, parametersWithoutArguments, isConstructorCall = true)
+                addInvoke(constructor, invokeSuspend, invokeToOverride, null, freeParameters, isConstructorCall = true)
             }
 
             context.suspendLambdaToOriginalFunctionMap[this] = info.function
@@ -217,7 +219,7 @@ private class AddContinuationLowering(private val context: JvmBackendContext) : 
         invokeSuspend: IrFunction,
         invokeToOverride: IrSimpleFunctionSymbol,
         receiverField: IrField?,
-        parametersWithoutArguments: List<IrField>,
+        freeParameters: List<IrField>,
         isConstructorCall: Boolean
     ) {
         val unitClass = context.irBuiltIns.unitClass
@@ -238,9 +240,9 @@ private class AddContinuationLowering(private val context: JvmBackendContext) : 
                 // This is because 'create' is called only from 'createCoroutineUnintercepted' from stdlib. And we have only versions
                 // for suspend lambdas without parameters and for ones with exactly one parameter (or extension receiver).
                 // Thus, we put arguments into fields in 'invoke'.
-                if (parametersWithoutArguments.isNotEmpty()) {
+                if (freeParameters.isNotEmpty()) {
                     for ((index, param) in function.valueParameters.drop(if (receiverField != null) 1 else 0).dropLast(1).withIndex()) {
-                        +irSetField(irGet(newlyCreatedObject), parametersWithoutArguments[index], irGet(param))
+                        +irSetField(irGet(newlyCreatedObject), freeParameters[index], irGet(param))
                     }
                 }
                 +irReturn(irCall(invokeSuspend).also { invokeSuspendCall ->
