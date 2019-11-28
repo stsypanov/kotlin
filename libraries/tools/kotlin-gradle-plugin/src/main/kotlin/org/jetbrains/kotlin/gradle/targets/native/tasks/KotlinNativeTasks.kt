@@ -621,7 +621,7 @@ open class KotlinNativeLink : AbstractKotlinNativeCompile<KotlinCommonToolOption
     override fun buildCompilerArgs(): List<String> = mutableListOf<String>().apply {
         addAll(super.buildCompilerArgs())
 
-        if (!optimized) {
+        if (!project.disableKonanCache && !optimized) {
             rootCacheDirectory.mkdirs()
             ensurePlatformLibsPrecached()
             add("-Xcache-directory=${rootCacheDirectory.absolutePath}")
