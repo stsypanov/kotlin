@@ -15,6 +15,7 @@ import org.gradle.api.file.FileTree
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.compile.AbstractCompile
+import org.jetbrains.kotlin.compilerRunner.*
 import org.jetbrains.kotlin.compilerRunner.KonanCompilerRunner
 import org.jetbrains.kotlin.compilerRunner.KonanInteropRunner
 import org.jetbrains.kotlin.compilerRunner.konanHome
@@ -214,120 +215,6 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
         }
     }
 
-    private val optionsAwareCacheName get() = "$target${if (debuggable) "-g" else ""}"
-
-    private val rootCacheDirectory
-        get() = File(File(File(project.konanHome, "klib"), "cache"), optionsAwareCacheName)
-
-    private fun getAllDependencies(dependency: ResolvedDependency): Set<ResolvedDependency> {
-        val allDependencies = mutableSetOf<ResolvedDependency>()
-
-        fun traverseAllDependencies(dependency: ResolvedDependency) {
-            if (dependency in allDependencies)
-                return
-            allDependencies.add(dependency)
-            dependency.children.forEach { traverseAllDependencies(it) }
-        }
-
-        dependency.children.forEach { traverseAllDependencies(it) }
-        return allDependencies
-    }
-
-    private fun computeDependenciesHash(dependency: ResolvedDependency): Long {
-        var result = 0L
-        (dependency.moduleArtifacts + getAllDependencies(dependency).flatMap { it.moduleArtifacts })
-            .map { it.file.absolutePath }
-            .distinct()
-            .sortedBy { it }
-            .flatMap { it.asIterable() }
-            .forEach { result = result * 497 + it.toInt() }
-        return result
-    }
-
-    private fun getCacheDirectory(dependency: ResolvedDependency): File {
-        val moduleCacheDirectory = File(rootCacheDirectory, dependency.moduleName)
-        val versionCacheDirectory = File(moduleCacheDirectory, dependency.moduleVersion)
-        return File(versionCacheDirectory, computeDependenciesHash(dependency).toString())
-    }
-
-    private fun needCache(libraryPath: String) = libraryPath.contains(".gradle") && libraryPath.endsWith(".klib")
-
-    private fun ensureDependencyPrecached(dependency: ResolvedDependency, visitedDependencies: MutableSet<ResolvedDependency>) {
-        if (dependency in visitedDependencies)
-            return
-        visitedDependencies += dependency
-        dependency.children.forEach { ensureDependencyPrecached(it, visitedDependencies) }
-
-        val artifactsToAddToCache = dependency.moduleArtifacts.filter { needCache(it.file.absolutePath) }
-        if (artifactsToAddToCache.isEmpty()) return
-
-        val cacheDirectory = getCacheDirectory(dependency)
-        cacheDirectory.mkdirs()
-        val dependenciesCacheDirectories = getAllDependencies(dependency)
-            .map { getCacheDirectory(it) }
-            .filter { it.exists() }
-        for (artifact in artifactsToAddToCache) {
-            project.logger.info("Compiling ${dependency.name} to cache")
-            val args = mutableListOf(
-                "-p", "dynamic_cache",
-                "-target", target
-            )
-            if (debuggable)
-                args += "-g"
-            args += "-Xadd-cache=${artifact.file.absolutePath}"
-            args += "-Xcache-directory=${cacheDirectory.absolutePath}"
-            args += "-Xcache-directory=${rootCacheDirectory.absolutePath}"
-
-            dependenciesCacheDirectories.forEach {
-                args += "-Xcache-directory=${it.absolutePath}"
-            }
-            getAllDependencies(dependency)
-                .flatMap { it.moduleArtifacts }
-                .map { it.file }
-                .filterExternalKlibs(project)
-                .forEach {
-                    args += "-l"
-                    args += it.absolutePath
-                }
-            KonanCompilerRunner(project).run(args)
-        }
-    }
-
-    private fun ensurePlatformLibPrecached(platformLibName: String, platformLibs: Map<String, File>, visitedLibs: MutableSet<String>) {
-        if (platformLibName in visitedLibs)
-            return
-        visitedLibs += platformLibName
-        val platformLib = platformLibs[platformLibName] ?: error("$platformLibName is not found in platform libs")
-        if (File(rootCacheDirectory, System.mapLibraryName("$platformLibName-cache")).exists())
-            return
-        val manifest = File(platformLib, "manifest")
-        val prefix = "depends="
-        manifest.forEachLine { line ->
-            if (!line.startsWith(prefix)) return@forEachLine
-            line.substring(prefix.length).split(' ').forEach { dependency ->
-                ensurePlatformLibPrecached(dependency, platformLibs, visitedLibs)
-            }
-        }
-        project.logger.info("Compiling $platformLibName (${visitedLibs.size}/${platformLibs.size}) to cache")
-        val args = mutableListOf(
-            "-p", "dynamic_cache",
-            "-target", target
-        )
-        if (debuggable)
-            args += "-g"
-        args += "-Xadd-cache=${platformLib.absolutePath}"
-        args += "-Xcache-directory=${rootCacheDirectory.absolutePath}"
-        KonanCompilerRunner(project).run(args)
-
-    }
-
-    private fun ensurePlatformLibsPrecached() {
-        val platformLibs = libraries.filter { it.providedByCompiler(project) }.associateBy { it.name }
-        val visitedLibs = mutableSetOf<String>()
-        for (platformLibName in platformLibs.keys)
-            ensurePlatformLibPrecached(platformLibName, platformLibs, visitedLibs)
-    }
-
     // Args passed to the compiler only (except sources).
     protected open fun buildCompilerArgs(): List<String> = mutableListOf<String>().apply {
         addKey("-opt", optimized)
@@ -342,22 +229,6 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
         // Libraries.
         libraries.files.filterExternalKlibs(project).forEach { library ->
             addArg("-l", library.absolutePath)
-        }
-
-        if (!optimized) {
-            rootCacheDirectory.mkdirs()
-            ensurePlatformLibsPrecached()
-            addKey("-Xcache-directory=${rootCacheDirectory.absolutePath}", true)
-            val visitedDependencies = mutableSetOf<ResolvedDependency>()
-            val compileDependencyConfiguration = project.configurations.getByName(compilation.compileDependencyConfigurationName)
-            for (root in compileDependencyConfiguration.resolvedConfiguration.firstLevelModuleDependencies) {
-                ensureDependencyPrecached(root, visitedDependencies)
-                for (dependency in listOf(root) + getAllDependencies(root)) {
-                    val cacheDirectory = getCacheDirectory(dependency)
-                    if (cacheDirectory.exists())
-                        addKey("-Xcache-directory=${cacheDirectory.absolutePath}", true)
-                }
-            }
         }
     }
 
@@ -633,8 +504,138 @@ open class KotlinNativeLink : AbstractKotlinNativeCompile<KotlinCommonToolOption
     private val linkFromSources: Boolean
         get() = project.hasProperty(LINK_FROM_SOURCES_PROPERTY)
 
+    private val optionsAwareCacheName get() = "$target${if (debuggable) "-g" else ""}"
+
+    private val rootCacheDirectory
+        get() = File(File(File(project.konanHome, "klib"), "cache"), optionsAwareCacheName)
+
+    private fun getAllDependencies(dependency: ResolvedDependency): Set<ResolvedDependency> {
+        val allDependencies = mutableSetOf<ResolvedDependency>()
+
+        fun traverseAllDependencies(dependency: ResolvedDependency) {
+            if (dependency in allDependencies)
+                return
+            allDependencies.add(dependency)
+            dependency.children.forEach { traverseAllDependencies(it) }
+        }
+
+        dependency.children.forEach { traverseAllDependencies(it) }
+        return allDependencies
+    }
+
+    private fun computeDependenciesHash(dependency: ResolvedDependency): Long {
+        var result = 0L
+        (dependency.moduleArtifacts + getAllDependencies(dependency).flatMap { it.moduleArtifacts })
+            .map { it.file.absolutePath }
+            .distinct()
+            .sortedBy { it }
+            .flatMap { it.asIterable() }
+            .forEach { result = result * 497 + it.toInt() }
+        return result
+    }
+
+    private fun getCacheDirectory(dependency: ResolvedDependency): File {
+        val moduleCacheDirectory = File(rootCacheDirectory, dependency.moduleName)
+        val versionCacheDirectory = File(moduleCacheDirectory, dependency.moduleVersion)
+        return File(versionCacheDirectory, computeDependenciesHash(dependency).toString())
+    }
+
+    private fun needCache(libraryPath: String) = libraryPath.contains(".gradle") && libraryPath.endsWith(".klib")
+
+    private fun ensureDependencyPrecached(dependency: ResolvedDependency, visitedDependencies: MutableSet<ResolvedDependency>) {
+        if (dependency in visitedDependencies)
+            return
+        visitedDependencies += dependency
+        dependency.children.forEach { ensureDependencyPrecached(it, visitedDependencies) }
+
+        val artifactsToAddToCache = dependency.moduleArtifacts.filter { needCache(it.file.absolutePath) }
+        if (artifactsToAddToCache.isEmpty()) return
+
+        val cacheDirectory = getCacheDirectory(dependency)
+        cacheDirectory.mkdirs()
+        val dependenciesCacheDirectories = getAllDependencies(dependency)
+            .map { getCacheDirectory(it) }
+            .filter { it.exists() }
+        for (artifact in artifactsToAddToCache) {
+            project.logger.info("Compiling ${dependency.name} to cache")
+            val args = mutableListOf(
+                "-p", "dynamic_cache",
+                "-target", target
+            )
+            if (debuggable)
+                args += "-g"
+            args += "-Xadd-cache=${artifact.file.absolutePath}"
+            args += "-Xcache-directory=${cacheDirectory.absolutePath}"
+            args += "-Xcache-directory=${rootCacheDirectory.absolutePath}"
+
+            dependenciesCacheDirectories.forEach {
+                args += "-Xcache-directory=${it.absolutePath}"
+            }
+            getAllDependencies(dependency)
+                .flatMap { it.moduleArtifacts }
+                .map { it.file }
+                .filterExternalKlibs(project)
+                .forEach {
+                    args += "-l"
+                    args += it.absolutePath
+                }
+            KonanCompilerRunner(project).run(args)
+        }
+    }
+
+    private fun ensurePlatformLibPrecached(platformLibName: String, platformLibs: Map<String, File>, visitedLibs: MutableSet<String>) {
+        if (platformLibName in visitedLibs)
+            return
+        visitedLibs += platformLibName
+        val platformLib = platformLibs[platformLibName] ?: error("$platformLibName is not found in platform libs")
+        if (File(rootCacheDirectory, System.mapLibraryName("$platformLibName-cache")).exists())
+            return
+        val manifest = File(platformLib, "manifest")
+        val prefix = "depends="
+        manifest.forEachLine { line ->
+            if (!line.startsWith(prefix)) return@forEachLine
+            line.substring(prefix.length).split(' ').forEach { dependency ->
+                ensurePlatformLibPrecached(dependency, platformLibs, visitedLibs)
+            }
+        }
+        project.logger.info("Compiling $platformLibName (${visitedLibs.size}/${platformLibs.size}) to cache")
+        val args = mutableListOf(
+            "-p", "dynamic_cache",
+            "-target", target
+        )
+        if (debuggable)
+            args += "-g"
+        args += "-Xadd-cache=${platformLib.absolutePath}"
+        args += "-Xcache-directory=${rootCacheDirectory.absolutePath}"
+        KonanCompilerRunner(project).run(args)
+
+    }
+
+    private fun ensurePlatformLibsPrecached() {
+        val platformLibs = libraries.filter { it.providedByCompiler(project) }.associateBy { it.name }
+        val visitedLibs = mutableSetOf<String>()
+        for (platformLibName in platformLibs.keys)
+            ensurePlatformLibPrecached(platformLibName, platformLibs, visitedLibs)
+    }
+
     override fun buildCompilerArgs(): List<String> = mutableListOf<String>().apply {
         addAll(super.buildCompilerArgs())
+
+        if (!optimized) {
+            rootCacheDirectory.mkdirs()
+            ensurePlatformLibsPrecached()
+            add("-Xcache-directory=${rootCacheDirectory.absolutePath}")
+            val visitedDependencies = mutableSetOf<ResolvedDependency>()
+            val compileDependencyConfiguration = project.configurations.getByName(compilation.compileDependencyConfigurationName)
+            for (root in compileDependencyConfiguration.resolvedConfiguration.firstLevelModuleDependencies) {
+                ensureDependencyPrecached(root, visitedDependencies)
+                for (dependency in listOf(root) + getAllDependencies(root)) {
+                    val cacheDirectory = getCacheDirectory(dependency)
+                    if (cacheDirectory.exists())
+                        add("-Xcache-directory=${cacheDirectory.absolutePath}")
+                }
+            }
+        }
 
         addKey("-tr", processTests)
         addArgIfNotNull("-entry", entryPoint)
