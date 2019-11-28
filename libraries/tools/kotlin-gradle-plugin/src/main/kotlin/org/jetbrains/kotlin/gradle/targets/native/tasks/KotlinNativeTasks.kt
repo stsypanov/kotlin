@@ -219,10 +219,12 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
     private val rootCacheDirectory
         get() = File(File(File(project.konanHome, "klib"), "cache"), optionsAwareCacheName)
 
-    private fun getAllDependencies(dependency: ResolvedDependency): List<ResolvedDependency> {
-        val allDependencies = mutableListOf<ResolvedDependency>()
+    private fun getAllDependencies(dependency: ResolvedDependency): Set<ResolvedDependency> {
+        val allDependencies = mutableSetOf<ResolvedDependency>()
 
         fun traverseAllDependencies(dependency: ResolvedDependency) {
+            if (dependency in allDependencies)
+                return
             allDependencies.add(dependency)
             dependency.children.forEach { traverseAllDependencies(it) }
         }
@@ -233,41 +235,36 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
 
     private fun computeDependenciesHash(dependency: ResolvedDependency): Long {
         var result = 0L
-        getAllDependencies(dependency)
-            .map { it.moduleName + it.moduleVersion }
+        (dependency.moduleArtifacts + getAllDependencies(dependency).flatMap { it.moduleArtifacts })
+            .map { it.file.absolutePath }
+            .distinct()
             .sortedBy { it }
             .flatMap { it.asIterable() }
             .forEach { result = result * 497 + it.toInt() }
         return result
     }
 
-    private fun getCacheDirectory(dependency: ResolvedDependency, create: Boolean): File {
+    private fun getCacheDirectory(dependency: ResolvedDependency): File {
         val moduleCacheDirectory = File(rootCacheDirectory, dependency.moduleName)
-        if (create)
-            moduleCacheDirectory.mkdir()
         val versionCacheDirectory = File(moduleCacheDirectory, dependency.moduleVersion)
-        if (create)
-            versionCacheDirectory.mkdir()
-        val dependenciesHashCacheDirectory = File(versionCacheDirectory, computeDependenciesHash(dependency).toString())
-        if (create)
-            dependenciesHashCacheDirectory.mkdir()
-        return dependenciesHashCacheDirectory
+        return File(versionCacheDirectory, computeDependenciesHash(dependency).toString())
     }
 
     private fun needCache(libraryPath: String) = libraryPath.contains(".gradle") && libraryPath.endsWith(".klib")
 
-    private fun ensureDependencyPrecached(dependency: ResolvedDependency, visitedDependencies: MutableSet<String>) {
-        if (dependency.name in visitedDependencies)
+    private fun ensureDependencyPrecached(dependency: ResolvedDependency, visitedDependencies: MutableSet<ResolvedDependency>) {
+        if (dependency in visitedDependencies)
             return
-        visitedDependencies += dependency.name
+        visitedDependencies += dependency
         dependency.children.forEach { ensureDependencyPrecached(it, visitedDependencies) }
 
         val artifactsToAddToCache = dependency.moduleArtifacts.filter { needCache(it.file.absolutePath) }
         if (artifactsToAddToCache.isEmpty()) return
 
-        val cacheDirectory = getCacheDirectory(dependency, true)
+        val cacheDirectory = getCacheDirectory(dependency)
+        cacheDirectory.mkdirs()
         val dependenciesCacheDirectories = getAllDependencies(dependency)
-            .map { getCacheDirectory(it, false) }
+            .map { getCacheDirectory(it) }
             .filter { it.exists() }
         for (artifact in artifactsToAddToCache) {
             project.logger.info("Compiling ${dependency.name} to cache")
@@ -284,7 +281,7 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
             dependenciesCacheDirectories.forEach {
                 args += "-Xcache-directory=${it.absolutePath}"
             }
-            dependency.children
+            getAllDependencies(dependency)
                 .flatMap { it.moduleArtifacts }
                 .map { it.file }
                 .filterExternalKlibs(project)
@@ -351,12 +348,12 @@ abstract class AbstractKotlinNativeCompile<T : KotlinCommonToolOptions> : Abstra
             rootCacheDirectory.mkdirs()
             ensurePlatformLibsPrecached()
             addKey("-Xcache-directory=${rootCacheDirectory.absolutePath}", true)
-            val visitedDependencies = mutableSetOf<String>()
+            val visitedDependencies = mutableSetOf<ResolvedDependency>()
             val compileDependencyConfiguration = project.configurations.getByName(compilation.compileDependencyConfigurationName)
             for (root in compileDependencyConfiguration.resolvedConfiguration.firstLevelModuleDependencies) {
                 ensureDependencyPrecached(root, visitedDependencies)
                 for (dependency in listOf(root) + getAllDependencies(root)) {
-                    val cacheDirectory = getCacheDirectory(dependency, false)
+                    val cacheDirectory = getCacheDirectory(dependency)
                     if (cacheDirectory.exists())
                         addKey("-Xcache-directory=${cacheDirectory.absolutePath}", true)
                 }
